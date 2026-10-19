@@ -1,0 +1,39 @@
+name: Deploy Resultados to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Hostinger via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 65002
+          script_stop: true
+          script: |
+            echo "🚀 Desplegando Panel de Resultados Lumiere en Hostinger..."
+            cd ${{ secrets.SSH_TARGET }}
+            if [ ! -d ".git" ]; then
+              git init
+              git remote add origin https://${{ secrets.GH_TOKEN }}@github.com/institutolumieresistemas-oss/resultados-lumiere-social.git
+            else
+              git remote set-url origin https://${{ secrets.GH_TOKEN }}@github.com/institutolumieresistemas-oss/resultados-lumiere-social.git
+            fi
+            git fetch origin main
+            git reset --hard origin/main
+            if [ -d "../calificador/uploads" ] && [ ! -e "uploads" ]; then
+              ln -s ../calificador/uploads uploads
+            fi
+            echo "✅ Deploy de Resultados completado exitosamente en ${{ secrets.SSH_TARGET }}"

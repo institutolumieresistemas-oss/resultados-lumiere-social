@@ -1,0 +1,10 @@
+# Archivos y carpetas de datos dinámicos (para no sobreescribir datos de alumnos en los deploys)
+uploads/*
+!uploads/.gitkeep
+alumnos.json
+bot.log
+*.tmp
+*.zip
+ultimo_escaneo.jpg
+.DS_Store
+Thumbs.db

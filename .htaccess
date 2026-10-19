@@ -1,0 +1,22 @@
+# ====================================================================
+# Configuración del Calificador Instituto Lumière (Hostinger)
+# ====================================================================
+
+# 1. Proteger archivos JSON y de LOG para que no sean descargables vía web
+<FilesMatch "\.(json|log)$">
+    Require all denied
+</FilesMatch>
+
+# 2. Permitir subida de fotografías en alta resolución desde celulares
+<IfModule mod_php8.c>
+    php_value upload_max_filesize 32M
+    php_value post_max_size 32M
+    php_value max_execution_time 120
+    php_value memory_limit 256M
+</IfModule>
+<IfModule mod_php.c>
+    php_value upload_max_filesize 32M
+    php_value post_max_size 32M
+    php_value max_execution_time 120
+    php_value memory_limit 256M
+</IfModule>

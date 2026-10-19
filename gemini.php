@@ -191,14 +191,17 @@ function gemini_procesar_hoja_con_alineacion($imageBytes, $mimeType = 'image/jpe
 /**
  * Función central para ejecutar peticiones a la API de Gemini con rotación automática de modelos
  */
-function gemini_ejecutar_peticion($payload, $timeout = 25) {
+function gemini_ejecutar_peticion($payload, $timeout = 30) {
     $models = array_unique([
         GEMINI_PRIMARY_MODEL,
+        'gemini-3.8-flash',
+        'gemini-3.1-pro-preview',
+        'gemini-pro-latest',
         GEMINI_FALLBACK_MODEL,
-        'gemini-3.5-flash',
-        'gemini-3-flash-preview',
         'gemini-3.5-flash-lite',
-        'gemini-3.6-flash'
+        'gemini-flash-latest',
+        'gemini-3-flash-preview',
+        'gemini-3.5-flash'
     ]);
 
     $lastError = '';
@@ -264,13 +267,48 @@ function gemini_ejecutar_peticion($payload, $timeout = 25) {
 }
 
 /**
+ * Preprocesamiento óptico de imagen para maximizar la precisión OMR:
+ * Convierte a escala de grises para eliminar sombras de luz cálida, incrementa
+ * drásticamente el contraste para resaltar el grafito del lápiz y blanquea el fondo.
+ */
+function gemini_mejorar_imagen_omr($imageBytes) {
+    if (!function_exists('imagecreatefromstring')) {
+        return $imageBytes;
+    }
+    $im = @imagecreatefromstring($imageBytes);
+    if (!$im) return $imageBytes;
+
+    // 1. Escala de grises: elimina ruido de temperatura de color y sombras de teléfono
+    imagefilter($im, IMG_FILTER_GRAYSCALE);
+
+    // 2. Alto contraste dinámico: hace que el lápiz resalte oscuro profundo sobre el papel
+    imagefilter($im, IMG_FILTER_CONTRAST, -25);
+
+    // 3. Normalizar brillo del papel para llevarlo a blanco puro
+    imagefilter($im, IMG_FILTER_BRIGHTNESS, 10);
+
+    // 4. Suavizado sutil para limpiar artefactos de compresión JPG
+    imagefilter($im, IMG_FILTER_SMOOTH, 1);
+
+    ob_start();
+    imagejpeg($im, null, 92);
+    $enhanced = ob_get_clean();
+    imagedestroy($im);
+
+    return $enhanced ?: $imageBytes;
+}
+
+/**
  * Analiza una sección recortada individual con instrucciones precisas para OMR PAA
  * (Garantiza que no haya mezcla entre secciones ni confusión de opciones)
  */
 function gemini_analizar_seccion_individual($imageBytes, $seccion) {
+    // Aplicar preprocesamiento visual de alto contraste antes de enviar a Gemini
+    $imageBytesOptimizado = gemini_mejorar_imagen_omr($imageBytes);
+
     if ($seccion === 'lectura') {
         $prompt = <<<EOT
-Eres un calificador experto de hojas de respuestas OMR de examen de admisión.
+Eres un lector óptico OMR de máxima precisión para hojas de respuestas de examen de admisión PAA (College Board).
 Esta imagen corresponde ÚNICAMENTE a la "Parte 1 Lectura" (Preguntas 1 a 45).
 Estructura: 5 columnas verticales con 9 preguntas cada una:
 - Columna 1: preguntas 1 a 9
@@ -279,18 +317,19 @@ Estructura: 5 columnas verticales con 9 preguntas cada una:
 - Columna 4: preguntas 28 a 36
 - Columna 5: preguntas 37 a 45
 
-REGLAS ESTRICTAS DE DETECCIÓN:
-1. Cada pregunta tiene exactamente 4 opciones de izquierda a derecha: A, B, C, D (1ª burbuja=A, 2ª burbuja=B, 3ª burbuja=C, 4ª burbuja=D).
-2. NO EXISTE LA OPCIÓN E. Bajo ninguna circunstancia respondas E.
-3. Si una pregunta está vacía (sin marcar), no la incluyas.
-4. Identifica con cuidado la burbuja rellenada con lápiz oscuro.
+REGLAS ESTRICTAS DE DETECCIÓN OMR:
+1. Cada pregunta tiene exactamente 4 opciones de izquierda a derecha: A, B, C, D (1ª=A, 2ª=B, 3ª=C, 4ª=D).
+2. NO EXISTE LA OPCIÓN E. No incluyas la letra E bajo ninguna circunstancia.
+3. Para cada número del 1 al 45, determina la letra de la burbuja que tenga el relleno intencional con lápiz más oscuro.
+4. Descarta borrones tenues o marcas borradas; selecciona únicamente la opción marcada definitivamente.
+5. Si una pregunta está vacía (sin marcar), no la incluyas en el JSON.
 
 Devuelve ÚNICAMENTE un objeto JSON:
 {"1": "A", "2": "B"}
 EOT;
     } elseif ($seccion === 'redaccion') {
         $prompt = <<<EOT
-Eres un calificador experto de hojas de respuestas OMR de examen de admisión.
+Eres un lector óptico OMR de máxima precisión para hojas de respuestas de examen de admisión PAA (College Board).
 Esta imagen corresponde ÚNICAMENTE a la "Parte 2 Redacción" (Preguntas 1 a 25).
 Estructura: 5 columnas verticales con 5 preguntas cada una:
 - Columna 1: preguntas 1 a 5
@@ -299,18 +338,19 @@ Estructura: 5 columnas verticales con 5 preguntas cada una:
 - Columna 4: preguntas 16 a 20
 - Columna 5: preguntas 21 a 25
 
-REGLAS ESTRICTAS DE DETECCIÓN:
-1. Cada pregunta tiene exactamente 4 opciones de izquierda a derecha: A, B, C, D (1ª burbuja=A, 2ª burbuja=B, 3ª burbuja=C, 4ª burbuja=D).
-2. NO EXISTE LA OPCIÓN E. Bajo ninguna circunstancia respondas E.
-3. Si una pregunta está vacía (sin marcar), no la incluyas.
-4. Identifica con cuidado la burbuja rellenada con lápiz oscuro.
+REGLAS ESTRICTAS DE DETECCIÓN OMR:
+1. Cada pregunta tiene exactamente 4 opciones de izquierda a derecha: A, B, C, D (1ª=A, 2ª=B, 3ª=C, 4ª=D).
+2. NO EXISTE LA OPCIÓN E. No incluyas la letra E bajo ninguna circunstancia.
+3. Para cada número del 1 al 25, determina la letra de la burbuja que tenga el relleno intencional con lápiz más oscuro.
+4. Descarta borrones tenues o marcas borradas; selecciona únicamente la opción marcada definitivamente.
+5. Si una pregunta está vacía (sin marcar), no la incluyas en el JSON.
 
 Devuelve ÚNICAMENTE un objeto JSON:
 {"1": "C", "2": "D"}
 EOT;
     } else { // matematicas
         $prompt = <<<EOT
-Eres un calificador experto de hojas de respuestas OMR de examen de admisión.
+Eres un lector óptico OMR de máxima precisión para hojas de respuestas de examen de admisión PAA (College Board).
 Esta imagen corresponde a la "Parte 3 Matemáticas" (Preguntas 1 a 45 de opción múltiple).
 Estructura: 3 columnas verticales con 15 preguntas cada una:
 - Columna 1: preguntas 1 a 15
@@ -318,11 +358,12 @@ Estructura: 3 columnas verticales con 15 preguntas cada una:
 - Columna 3: preguntas 31 a 45
 (Ignora por completo las cuadrículas numéricas tipo Grid 46 a 55).
 
-REGLAS ESTRICTAS DE DETECCIÓN:
-1. Cada pregunta tiene exactamente 4 opciones de izquierda a derecha: A, B, C, D (1ª burbuja=A, 2ª burbuja=B, 3ª burbuja=C, 4ª burbuja=D).
-2. NO EXISTE LA OPCIÓN E. Bajo ninguna circunstancia respondas E.
-3. Si una pregunta está vacía (sin marcar), no la incluyas.
-4. Identifica con cuidado la burbuja rellenada con lápiz oscuro.
+REGLAS ESTRICTAS DE DETECCIÓN OMR:
+1. Cada pregunta tiene exactamente 4 opciones de izquierda a derecha: A, B, C, D (1ª=A, 2ª=B, 3ª=C, 4ª=D).
+2. NO EXISTE LA OPCIÓN E. No incluyas la letra E bajo ninguna circunstancia.
+3. Para cada número del 1 al 45, determina la letra de la burbuja que tenga el relleno intencional con lápiz más oscuro.
+4. Descarta borrones tenues o marcas borradas; selecciona únicamente la opción marcada definitivamente.
+5. Si una pregunta está vacía (sin marcar), no la incluyas en el JSON.
 
 Devuelve ÚNICAMENTE un objeto JSON:
 {"1": "A", "2": "B"}
@@ -333,7 +374,7 @@ EOT;
         'contents' => [[
             'parts' => [
                 ['text' => $prompt],
-                ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => base64_encode($imageBytes)]]
+                ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => base64_encode($imageBytesOptimizado)]]
             ]
         ]],
         'generationConfig' => [

@@ -19,8 +19,8 @@ $geminiKeyFallback = base64_decode('QVEuQWI4Uk42SXNIc0V2ejFkVGNOUk1Deld3MndFREZv
 define('GEMINI_API_KEY', getenv('GEMINI_API_KEY') ?: $geminiKeyFallback);
 
 // Modelos de Gemini a utilizar con alta capacidad de visión OMR
-define('GEMINI_PRIMARY_MODEL', 'gemini-3.5-flash');
-define('GEMINI_FALLBACK_MODEL', 'gemini-3-flash-preview');
+define('GEMINI_PRIMARY_MODEL', 'gemini-3.8-flash');
+define('GEMINI_FALLBACK_MODEL', 'gemini-3.5-flash-lite');
 
 // 3. URLs oficiales de Telegram API
 define('TELEGRAM_API_URL', 'https://api.telegram.org/bot' . TELEGRAM_BOT_TOKEN . '/');

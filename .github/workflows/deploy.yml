@@ -25,6 +25,7 @@ jobs:
           script: |
             echo "🚀 Desplegando Panel de Resultados Lumiere en Hostinger..."
             cd ${{ secrets.SSH_TARGET }}
+            rm -f default.php
             if [ ! -d ".git" ]; then
               git init
               git remote add origin https://${{ secrets.GH_TOKEN }}@github.com/institutolumieresistemas-oss/resultados-lumiere-social.git
@@ -32,8 +33,9 @@ jobs:
               git remote set-url origin https://${{ secrets.GH_TOKEN }}@github.com/institutolumieresistemas-oss/resultados-lumiere-social.git
             fi
             git fetch origin main
+            git checkout -B main origin/main
             git reset --hard origin/main
-            if [ -d "../calificador/uploads" ] && [ ! -e "uploads" ]; then
-              ln -s ../calificador/uploads uploads
+            if [ -d "../calificador/uploads" ]; then
+              ln -sfn ../calificador/uploads uploads
             fi
             echo "✅ Deploy de Resultados completado exitosamente en ${{ secrets.SSH_TARGET }}"

@@ -887,10 +887,31 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                 <p style="color:var(--muted); font-size:13px; margin:0 0 16px 0;">
                     Toma o sube una fotografía nítida de la hoja con las respuestas oficiales marcadas. La Inteligencia Artificial detectará todas las burbujas y actualizará el editor inferior automáticamente.
                 </p>
-                <div class="scan-box" onclick="document.getElementById('fileHojaBase').click()">
-                    <div class="scan-icon">📄</div>
-                    <strong style="color:#fff; font-size:15px; display:block; margin-bottom:4px;">Haz clic aquí para seleccionar la foto de la Hoja Base</strong>
-                    <span style="color:var(--muted); font-size:13px;" id="scanStatusText">JPG, PNG o captura directa de cámara</span>
+                <div class="scan-box" style="padding: 24px 16px;">
+                    <div class="scan-icon">📸</div>
+                    <strong style="color:#fff; font-size:16px; display:block; margin-bottom:8px;">Captura o Sube la Hoja Base Maestra</strong>
+                    <span style="color:var(--muted); font-size:13px; display:block; margin-bottom:16px;" id="scanStatusText">
+                        Usa la cámara de tu celular, visor de cámara en vivo o selecciona un archivo
+                    </span>
+
+                    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                        <!-- Botón 1: Cámara Nativa (Celulares / Dispositivos) -->
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('fileHojaBaseCamara').click()" style="padding:10px 18px; font-size:14px;">
+                            <span>📸 Tomar Foto con Cámara</span>
+                        </button>
+
+                        <!-- Botón 2: Cámara Web en Vivo (Modal con retícula) -->
+                        <button type="button" class="btn btn-secondary" onclick="abrirCamaraEnVivo()" style="padding:10px 18px; font-size:14px; background:#1e293b; color:#fff; border:1px solid #334155;">
+                            <span>📹 Visor de Cámara en Vivo</span>
+                        </button>
+
+                        <!-- Botón 3: Galería o Archivo -->
+                        <button type="button" class="btn btn-outline" onclick="document.getElementById('fileHojaBase').click()" style="padding:10px 18px; font-size:14px; border:1px solid var(--border); background:var(--card-surface); color:var(--text);">
+                            <span>📁 Subir desde Archivo</span>
+                        </button>
+                    </div>
+
+                    <input type="file" id="fileHojaBaseCamara" accept="image/*" capture="environment" style="display:none;" onchange="escanearHojaBaseConIA(this)">
                     <input type="file" id="fileHojaBase" accept="image/*" style="display:none;" onchange="escanearHojaBaseConIA(this)">
                 </div>
             </div>
@@ -943,6 +964,31 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
             </div>
         </div>
     </div>
+
+    <!-- Modal de Cámara en Vivo para Hoja Base -->
+    <div id="modalCamaraEnVivo" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center; padding:16px;">
+        <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:16px; max-width:550px; width:100%; overflow:hidden; position:relative; box-shadow:0 20px 40px rgba(0,0,0,0.6);">
+            <div style="padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                <strong style="color:#fff; font-size:16px;">📷 Captura de Hoja Base con Cámara</strong>
+                <button type="button" onclick="cerrarCamaraEnVivo()" style="background:none; border:none; color:var(--muted); font-size:24px; cursor:pointer; line-height:1;">&times;</button>
+            </div>
+            <div style="position:relative; background:#000; width:100%; max-height:420px; overflow:hidden; display:flex; justify-content:center; align-items:center;">
+                <video id="videoCamaraFeed" autoplay playsinline style="width:100%; max-height:420px; object-fit:contain;"></video>
+                <div style="position:absolute; border:2px dashed rgba(255,255,255,0.7); width:85%; height:88%; pointer-events:none; border-radius:12px; box-shadow:0 0 0 9999px rgba(0,0,0,0.35);">
+                    <div style="position:absolute; bottom:8px; left:0; width:100%; text-align:center; color:#fff; font-size:12px; text-shadow:0 1px 3px #000;">
+                        Alinea la hoja completa dentro del recuadro
+                    </div>
+                </div>
+            </div>
+            <div style="padding:16px 20px; display:flex; justify-content:space-between; gap:12px; background:var(--card-surface);">
+                <button type="button" class="btn btn-outline" onclick="cerrarCamaraEnVivo()" style="padding:10px 18px; color:var(--muted); border:1px solid var(--border); background:none;">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="capturarFotoCamara()" style="padding:10px 24px; font-weight:700;">
+                    <span>📸 Capturar y Escanear</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <canvas id="canvasCaptura" style="display:none;"></canvas>
 
     <!-- Toast Notification -->
     <div class="toast" id="toastNotification">
@@ -1483,9 +1529,8 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
         }
 
         // 9. Escanear Hoja Base con IA
-        async function escanearHojaBaseConIA(input) {
-            if (!input.files || !input.files[0]) return;
-            const archivo = input.files[0];
+        async function procesarArchivoHojaBase(archivo) {
+            if (!archivo) return;
             const statusText = document.getElementById('scanStatusText');
 
             statusText.innerHTML = `<span class="spinner"></span> Analizando Hoja Base con Inteligencia Artificial (Gemini)...`;
@@ -1503,7 +1548,7 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                     datosDashboard.hoja_base = res.hoja_base;
                     renderEditorClaves();
                     mostrarToast('✅ ¡Hoja Base escaneada y cargada al editor con éxito!', 'success');
-                    statusText.textContent = `Último escaneo completado: ${archivo.name}`;
+                    statusText.textContent = `Último escaneo completado: ${archivo.name || 'Captura de cámara'}`;
                 } else {
                     mostrarToast('⚠️ ' + (res.error || 'No se pudo escanear la hoja'), 'error');
                     statusText.textContent = 'Error en escaneo. Puedes intentarlo nuevamente.';
@@ -1511,9 +1556,73 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
             } catch (err) {
                 mostrarToast('Error al conectar con la IA', 'error');
                 statusText.textContent = 'Error de conexión.';
-            } finally {
-                input.value = '';
             }
+        }
+
+        async function escanearHojaBaseConIA(input) {
+            if (!input.files || !input.files[0]) return;
+            const archivo = input.files[0];
+            await procesarArchivoHojaBase(archivo);
+            input.value = '';
+        }
+
+        let camaraStream = null;
+
+        async function abrirCamaraEnVivo() {
+            const modal = document.getElementById('modalCamaraEnVivo');
+            const video = document.getElementById('videoCamaraFeed');
+            modal.style.display = 'flex';
+
+            try {
+                camaraStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                });
+                video.srcObject = camaraStream;
+            } catch (err) {
+                console.error("Error al acceder a la cámara:", err);
+                cerrarCamaraEnVivo();
+                mostrarToast('Iniciando cámara nativa del dispositivo...', 'info');
+                document.getElementById('fileHojaBaseCamara').click();
+            }
+        }
+
+        function cerrarCamaraEnVivo() {
+            const modal = document.getElementById('modalCamaraEnVivo');
+            const video = document.getElementById('videoCamaraFeed');
+            if (camaraStream) {
+                camaraStream.getTracks().forEach(track => track.stop());
+                camaraStream = null;
+            }
+            if (video) video.srcObject = null;
+            modal.style.display = 'none';
+        }
+
+        function capturarFotoCamara() {
+            const video = document.getElementById('videoCamaraFeed');
+            const canvas = document.getElementById('canvasCaptura');
+            if (!video.videoWidth) {
+                mostrarToast('Esperando señal de video...', 'error');
+                return;
+            }
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            cerrarCamaraEnVivo();
+
+            canvas.toBlob(async (blob) => {
+                if (blob) {
+                    const archivo = new File([blob], "captura_hoja_base.jpg", { type: "image/jpeg" });
+                    await procesarArchivoHojaBase(archivo);
+                }
+            }, 'image/jpeg', 0.95);
         }
 
         // 10. Utilidades

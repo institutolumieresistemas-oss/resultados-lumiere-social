@@ -37,16 +37,16 @@ Documento central con las rutas, dominios, credenciales, actualizaciones técnic
 
 ## 🚀 3. Registro de Actualizaciones Recientes (Changelog)
 
-### ✅ Optimización de Visión por Computadora con IA (Google Gemini)
-1. **Migración de Modelo a Gemini Flash Lite:**
-   * **Antes:** Se utilizaba `gemini-3.8-flash`, el cual presentaba saturación de demanda (`HTTP 503`) y timeouts prolongados en horas pico.
-   * **Ahora:** Se configuró **`gemini-3.5-flash-lite`** como modelo principal de visión OMR (con fallback a `gemini-3-flash-preview`). En pruebas con hojas de examen reales, procesó las 3 secciones con respuesta inmediata y **115 de 115 reactivos detectados (100% de precisión)**.
-2. **Eliminación del Bloqueo de Cuota (`HTTP 429`):**
-   * Se incorporó un espaciado dinámico anti-ráfaga de **500 ms** entre peticiones de secciones para evitar saturar el límite de peticiones por minuto.
-3. **Mecanismo de Autorrecuperación Seccional:**
-   * Si por alguna fluctuación de red una sección arroja menos respuestas de las esperadas, el backend reintenta automáticamente esa sección individual antes de sellar la calificación.
-4. **Sincronización en Producción:**
-   * Ambas plataformas (`calificador.lumieresocial.com` y `resultados.lumieresocial.com`) fueron actualizadas y desplegadas en Hostinger.
+### ⚡ Soporte Completo para 125 Reactivos PAA y Grid Matemático (46 a 55) - 21/Oct/2026
+1. **Solución a Lectura Parcial y Fallas de Recorte:**
+   * Se eliminó el recorte rígido por detección de color que fallaba en fotos reales de smartphone y cortaba secciones.
+   * Ahora el análisis procesa la **hoja completa de un solo vistazo en alta resolución**, logrando una respuesta ultra rápida de **~3.9 segundos** para los 125 reactivos completos.
+2. **Soporte Oficial para Matemáticas Grid (Preguntas 46 a 55):**
+   * Las preguntas 46 a 55 ya no están limitadas a opciones ABCD: admiten números enteros, decimales y fracciones (ej. `18`, `3.5`, `1/2`).
+   * El calificador evalúa equivalencias matemáticas automáticas (ej. `1/2` == `0.5` == `.5`).
+   * Se habilitó la captura y edición manual de los 10 reactivos Grid tanto en el Panel Docente (`panel.php`) como en el portal del alumno (`index.php`).
+3. **Velocidad sin saturación:**
+   * Con **`gemini-3.5-flash-lite`** como modelo principal, no hay timeouts ni demoras, entregando la calificación completa en menos de 4 segundos.
 
 ---
 

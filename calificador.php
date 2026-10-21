@@ -88,6 +88,40 @@ function puntaje_tabulador_matematicas($aciertos, $totalEnClave = 55) {
 }
 
 /**
+ * Parsea un valor numérico o fraccionario para evaluación de equivalencia Grid
+ */
+function parse_valor_numerico($str) {
+    if ($str === null || $str === '') return null;
+    $s = str_replace(',', '.', trim((string)$str));
+    if (strpos($s, '/') !== false) {
+        $partes = explode('/', $s);
+        if (count($partes) === 2 && is_numeric($partes[0]) && is_numeric($partes[1]) && floatval($partes[1]) != 0) {
+            return floatval($partes[0]) / floatval($partes[1]);
+        }
+    }
+    if (is_numeric($s)) {
+        return floatval($s);
+    }
+    return null;
+}
+
+/**
+ * Evalúa si dos respuestas Grid son equivalentes (ej. '1/2' == '0.5' == '.5')
+ */
+function es_mismo_valor_grid($respBase, $respAlumno) {
+    $b = trim(strtoupper((string)$respBase));
+    $a = trim(strtoupper((string)$respAlumno));
+    if ($b === $a) return true;
+
+    $valB = parse_valor_numerico($b);
+    $valA = parse_valor_numerico($a);
+    if ($valB !== null && $valA !== null) {
+        return abs($valB - $valA) < 0.0001;
+    }
+    return false;
+}
+
+/**
  * Califica las respuestas detectadas por la IA contra la Hoja Base registrada
  * 
  * @param array $datosAlumno Respuestas detectadas por Gemini: ['lectura' => [...], 'redaccion' => [...], ...]
@@ -150,12 +184,18 @@ function calificar_examen($datosAlumno) {
                 if ($marcada === null || $marcada === '') {
                     $estado = 'omitida';
                     $omitidas++;
-                } elseif ($marcada === $correcta) {
-                    $estado = 'acierto';
-                    $aciertos++;
                 } else {
-                    $estado = 'error';
-                    $errores++;
+                    $esAcierto = ($claveSec === 'matematicas' && intval($numPregunta) >= 46 && intval($numPregunta) <= 55)
+                        ? es_mismo_valor_grid($correcta, $marcada)
+                        : ($marcada === $correcta);
+
+                    if ($esAcierto) {
+                        $estado = 'acierto';
+                        $aciertos++;
+                    } else {
+                        $estado = 'error';
+                        $errores++;
+                    }
                 }
 
                 $detalleReactivos[] = [

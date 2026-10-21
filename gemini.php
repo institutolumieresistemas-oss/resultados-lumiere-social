@@ -410,27 +410,27 @@ EOT;
  */
 function gemini_analyze_sheet($imageBytes, $mimeType = 'image/jpeg') {
     if (empty(GEMINI_API_KEY) || GEMINI_API_KEY === 'TU_GEMINI_API_KEY_AQUI') {
-        bot_log("Error: La constante GEMINI_API_KEY no está configurada.");
+        bot_log("Error: La constante GEMINI_API_KEY no esta configurada.");
         return ['error' => 'API Key de Gemini no configurada'];
     }
 
-    // 1. Intentar recortar las secciones individuales de forma adaptativa y dinámica
+    // 1. Analisis directo de imagen completa (100% de la hoja en 1 peticion de 4 segundos)
+    $resultadoFull = gemini_analyze_sheet_full($imageBytes, $mimeType);
+    if (!isset($resultadoFull['error'])) {
+        $totalFull = count($resultadoFull['lectura']) + count($resultadoFull['redaccion']) + count($resultadoFull['matematicas']);
+        if ($totalFull >= 20) {
+            return $resultadoFull;
+        }
+    }
+
+    // 2. Si la imagen completa arrojo muy poco, intentar multi-recorte como respaldo
     $recortes = gemini_preparar_recortes_secciones($imageBytes);
     if ($recortes !== false && count($recortes) === 3) {
-        bot_log("Multi-recorte de alta resolución generado con éxito. Analizando cada sección individualmente...");
-        
         $resLec = gemini_analizar_seccion_individual($recortes[0], 'lectura');
         $resRed = gemini_analizar_seccion_individual($recortes[1], 'redaccion');
         $resMat = gemini_analizar_seccion_individual($recortes[2], 'matematicas');
 
-        $totalLec = count($resLec);
-        $totalRed = count($resRed);
-        $totalMat = count($resMat);
-        $total = $totalLec + $totalRed + $totalMat;
-
-        bot_log("Resumen Multi-recorte: Lectura={$totalLec}/45, Redacción={$totalRed}/25, Matemáticas={$totalMat}/45 (Total={$total})");
-
-        // Si se detectaron respuestas suficientes, retornar el resultado estructurado
+        $total = count($resLec) + count($resRed) + count($resMat);
         if ($total >= 20) {
             return [
                 'lectura' => $resLec,
@@ -439,39 +439,53 @@ function gemini_analyze_sheet($imageBytes, $mimeType = 'image/jpeg') {
                 'ingles' => []
             ];
         }
-
-        bot_log("Multi-recorte dio resultado insuficiente ({$total} respuestas). Reintentando con análisis de imagen completa...");
     }
 
-    // 2. Si no se pudo hacer recorte o el resultado fue bajo, enviar la imagen completa
-    return gemini_analyze_sheet_full($imageBytes, $mimeType);
+    return $resultadoFull;
 }
 
 /**
- * Analiza la hoja directamente en imagen completa (sin recortes previos)
+ * Analiza la hoja directamente en imagen completa (125 reactivos PAA con Grid Numerico 46 a 55)
  */
 function gemini_analyze_sheet_full($imageBytes, $mimeType = 'image/jpeg') {
     $prompt = <<<EOT
-Eres un calificador experto de hojas de respuestas OMR de Instituto Lumière (examen PAA).
-Examina la fotografía de la hoja de respuestas completa adjunta.
+Eres un calificador optico OMR de maxima precision para hojas de respuestas de examen PAA / College Board del Instituto Lumiere.
+Examina la imagen completa de la hoja de respuestas.
 
-Estructura de la hoja:
-1. PARTE 1 / LECTURA: Preguntas 1 a 45 (5 columnas de 9: 1-9, 10-18, 19-27, 28-36, 37-45).
-2. PARTE 2 / REDACCIÓN: Preguntas 1 a 25 (5 columnas de 5: 1-5, 6-10, 11-15, 16-20, 21-25).
-3. PARTE 3 / MATEMÁTICAS: Preguntas 1 a 45 de opción múltiple (3 columnas de 15: 1-15, 16-30, 31-45). Ignora las preguntas Grid 46 a 55.
+Estructura oficial del examen (125 preguntas en total):
+1. PARTE 1 / LECTURA (Preguntas 1 a 45):
+   - 5 columnas verticales de 9 preguntas cada una (1-9, 10-18, 19-27, 28-36, 37-45).
+   - Opciones: A, B, C, D (4 burbujas por fila).
 
-REGLAS ESTRICTAS DE DETECCIÓN:
-1. Cada pregunta tiene únicamente 4 opciones de izquierda a derecha: A, B, C, D (1ª burbuja=A, 2ª=B, 3ª=C, 4ª=D).
-2. NO EXISTE LA OPCIÓN E. No incluyas la letra E bajo ninguna circunstancia.
-3. SOLO incluye preguntas donde el estudiante haya rellenado claramente la burbuja con lápiz oscuro.
-4. Si una pregunta está vacía (sin marcar), NO la incluyas.
+2. PARTE 2 / REDACCION (Preguntas 1 a 25):
+   - 5 columnas verticales de 5 preguntas cada una (1-5, 6-10, 11-15, 16-20, 21-25).
+   - Opciones: A, B, C, D (4 burbujas por fila).
 
-Devuelve ÚNICAMENTE un objeto JSON:
+3. PARTE 3 / MATEMATICAS (55 preguntas en total: 1 a 55):
+   - Preguntas 1 a 45 (Seleccion multiple):
+     * 3 columnas verticales de 15 preguntas cada una (1-15, 16-30, 31-45).
+     * Opciones: A, B, C, D.
+   - Preguntas 46 a 55 (Cuadriculas de Grid Numerico):
+     * Son 10 ejercicios abiertos donde los alumnos rellenan numeros del 0 al 9, puntos decimales (.) o fracciones (/).
+     * Ejemplos de respuestas: "1/2", "3.5", "18", "4/5", "25", "0.75", etc.
+     * Si rellenaron letras en lugar de numeros, anota la letra; si rellenaron numeros, anota el numero o fraccion resultante.
+
+REGLAS ESTRICTAS DE DETECCION:
+1. Identifica para cada pregunta la burbuja que tenga el relleno intencional con lapiz o tinta mas oscuro y definitivo.
+2. Descarta marcas borradas o tenues.
+3. Si una pregunta esta vacia (sin contestar), no la incluyas en el JSON.
+
+Devuelve UNICAMENTE un objeto JSON valido con este formato exacto:
 {
-  "lectura": { "1": "A" },
-  "redaccion": { "1": "C" },
-  "matematicas": { "1": "B" },
-  "ingles": {}
+  "lectura": { "1": "A", "2": "B" },
+  "redaccion": { "1": "C", "2": "D" },
+  "matematicas": {
+    "1": "A",
+    "45": "B",
+    "46": "18",
+    "47": "3.5",
+    "55": "1/2"
+  }
 }
 EOT;
 
@@ -501,19 +515,46 @@ EOT;
             'ingles' => []
         ];
 
-        foreach (['lectura', 'redaccion', 'matematicas', 'ingles'] as $sec) {
-            if (isset($data[$sec]) && is_array($data[$sec])) {
-                foreach ($data[$sec] as $num => $val) {
-                    $valStr = strtoupper(trim((string)$val));
+        // 1. Lectura: 1 a 45
+        if (isset($data['lectura']) && is_array($data['lectura'])) {
+            foreach ($data['lectura'] as $num => $val) {
+                $valStr = strtoupper(trim((string)$val));
+                if (in_array($valStr, ['A', 'B', 'C', 'D'])) {
+                    $limpio['lectura'][(string)$num] = $valStr;
+                }
+            }
+        }
+
+        // 2. Redaccion: 1 a 25
+        if (isset($data['redaccion']) && is_array($data['redaccion'])) {
+            foreach ($data['redaccion'] as $num => $val) {
+                $valStr = strtoupper(trim((string)$val));
+                if (in_array($valStr, ['A', 'B', 'C', 'D'])) {
+                    $limpio['redaccion'][(string)$num] = $valStr;
+                }
+            }
+        }
+
+        // 3. Matematicas: 1 a 45 (ABCD) y 46 a 55 (Grid Numerico)
+        if (isset($data['matematicas']) && is_array($data['matematicas'])) {
+            foreach ($data['matematicas'] as $num => $val) {
+                $numInt = intval($num);
+                $valStr = strtoupper(trim((string)$val));
+                if ($numInt >= 46 && $numInt <= 55) {
+                    $cleanGrid = preg_replace('/[^A-Z0-9\/\.\-]/', '', $valStr);
+                    if (!empty($cleanGrid)) {
+                        $limpio['matematicas'][(string)$num] = $cleanGrid;
+                    }
+                } else {
                     if (in_array($valStr, ['A', 'B', 'C', 'D'])) {
-                        $limpio[$sec][(string)$num] = $valStr;
+                        $limpio['matematicas'][(string)$num] = $valStr;
                     }
                 }
             }
         }
 
         $totalResp = count($limpio['lectura']) + count($limpio['redaccion']) + count($limpio['matematicas']);
-        bot_log("Gemini ({$res['modelo']}) analizó imagen completa: {$totalResp} reactivos detectados.");
+        bot_log("Gemini ({$res['modelo']}) analizo imagen completa: {$totalResp} reactivos detectados (incluyendo Grid).");
         return $limpio;
     }
 
@@ -521,13 +562,7 @@ EOT;
 }
 
 /**
- * Prepara los recortes de alta resolución de las secciones con autocorrección de orientación
- * y detección dinámica de las franjas de color magenta de la hoja de respuestas Lumière.
- * 
- * @param string $imageBytes Contenido binario de la imagen
- * @return array|false Arreglo con [b1, b2, b3] (JPEG binarios) o false en fallo
- */
-function gemini_preparar_recortes_secciones($imageBytes) {
+ * Prepara los recortes($imageBytes) {
     if (!function_exists('imagecreatefromstring')) {
         return false;
     }

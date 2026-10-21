@@ -887,10 +887,23 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                 <p style="color:var(--muted); font-size:13px; margin:0 0 16px 0;">
                     Toma o sube una fotografía nítida de la hoja con las respuestas oficiales marcadas. La Inteligencia Artificial detectará todas las burbujas y actualizará el editor inferior automáticamente.
                 </p>
-                <div class="scan-box" onclick="document.getElementById('fileHojaBase').click()">
-                    <div class="scan-icon">📄</div>
-                    <strong style="color:#fff; font-size:15px; display:block; margin-bottom:4px;">Haz clic aquí para seleccionar la foto de la Hoja Base</strong>
-                    <span style="color:var(--muted); font-size:13px;" id="scanStatusText">JPG, PNG o captura directa de cámara</span>
+                <div class="scan-box" style="padding: 24px 16px;">
+                    <div class="scan-icon">📸</div>
+                    <strong style="color:#fff; font-size:16px; display:block; margin-bottom:8px;">Captura o Sube la Hoja Base Maestra</strong>
+                    <span style="color:var(--muted); font-size:13px; display:block; margin-bottom:16px;" id="scanStatusText">
+                        Usa la cámara de tu celular, visor de cámara en vivo o selecciona un archivo
+                    </span>
+
+                    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('fileHojaBaseCamara').click()" style="padding:10px 18px; font-size:14px;">
+                            <span>📸 Tomar Foto con Cámara</span>
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="document.getElementById('fileHojaBase').click()" style="padding:10px 18px; font-size:14px; border:1px solid var(--border); background:var(--card-surface); color:var(--text);">
+                            <span>📁 Subir desde Archivo</span>
+                        </button>
+                    </div>
+
+                    <input type="file" id="fileHojaBaseCamara" accept="image/*" capture="environment" style="display:none;" onchange="escanearHojaBaseConIA(this)">
                     <input type="file" id="fileHojaBase" accept="image/*" style="display:none;" onchange="escanearHojaBaseConIA(this)">
                 </div>
             </div>
@@ -915,7 +928,7 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                 <div style="display:flex; gap:8px; margin-bottom:16px;">
                     <button class="filter-btn active" id="btnSecLectura" onclick="cambiarSecClave('lectura')">Lectura (1 - 45)</button>
                     <button class="filter-btn" id="btnSecRedaccion" onclick="cambiarSecClave('redaccion')">Redacción (1 - 25)</button>
-                    <button class="filter-btn" id="btnSecMate" onclick="cambiarSecClave('matematicas')">Matemáticas (1 - 45)</button>
+                    <button class="filter-btn" id="btnSecMate" onclick="cambiarSecClave('matematicas')">Matemáticas (1 - 55)</button>
                 </div>
 
                 <!-- Cuadrícula de Preguntas -->

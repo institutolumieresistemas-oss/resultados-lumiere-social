@@ -57,10 +57,10 @@ EOT;
     $models = array_unique([
         GEMINI_PRIMARY_MODEL,
         GEMINI_FALLBACK_MODEL,
-        'gemini-3.5-flash',
-        'gemini-3-flash-preview',
         'gemini-3.5-flash-lite',
-        'gemini-3.6-flash'
+        'gemini-3-flash-preview',
+        'gemini-flash-latest',
+        'gemini-3.8-flash'
     ]);
 
     foreach ($models as $model) {
@@ -194,14 +194,13 @@ function gemini_procesar_hoja_con_alineacion($imageBytes, $mimeType = 'image/jpe
 function gemini_ejecutar_peticion($payload, $timeout = 30) {
     $models = array_unique([
         GEMINI_PRIMARY_MODEL,
-        'gemini-3.8-flash',
-        'gemini-3.1-pro-preview',
-        'gemini-pro-latest',
         GEMINI_FALLBACK_MODEL,
         'gemini-3.5-flash-lite',
-        'gemini-flash-latest',
         'gemini-3-flash-preview',
-        'gemini-3.5-flash'
+        'gemini-flash-latest',
+        'gemini-pro-latest',
+        'gemini-2.5-pro',
+        'gemini-3.8-flash'
     ]);
 
     $lastError = '';
@@ -420,8 +419,33 @@ function gemini_analyze_sheet($imageBytes, $mimeType = 'image/jpeg') {
         bot_log("Multi-recorte de alta resolución generado con éxito. Analizando cada sección individualmente...");
         
         $resLec = gemini_analizar_seccion_individual($recortes[0], 'lectura');
+        usleep(500000); // Pausa de 0.5s para respetar cuota sin saturación
         $resRed = gemini_analizar_seccion_individual($recortes[1], 'redaccion');
+        usleep(500000); // Pausa de 0.5s para respetar cuota sin saturación
         $resMat = gemini_analizar_seccion_individual($recortes[2], 'matematicas');
+
+        // Autorrecuperación: si alguna sección vino incompleta por saturación transitoria, reintentarla
+        if (count($resLec) < 35) {
+            usleep(800000);
+            $retryLec = gemini_analizar_seccion_individual($recortes[0], 'lectura');
+            if (count($retryLec) > count($resLec)) {
+                $resLec = $retryLec;
+            }
+        }
+        if (count($resRed) < 18) {
+            usleep(800000);
+            $retryRed = gemini_analizar_seccion_individual($recortes[1], 'redaccion');
+            if (count($retryRed) > count($resRed)) {
+                $resRed = $retryRed;
+            }
+        }
+        if (count($resMat) < 35) {
+            usleep(800000);
+            $retryMat = gemini_analizar_seccion_individual($recortes[2], 'matematicas');
+            if (count($retryMat) > count($resMat)) {
+                $resMat = $retryMat;
+            }
+        }
 
         $totalLec = count($resLec);
         $totalRed = count($resRed);

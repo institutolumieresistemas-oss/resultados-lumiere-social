@@ -59,9 +59,12 @@ Documento central con las rutas, dominios, credenciales, actualizaciones técnic
 2. Ingresa la contraseña de administrador: **`lumiere2026`**.
 3. Haz clic en la pestaña superior: **"📋 Hoja Base Oficial (Claves PAA)"**.
 4. Selecciona tu método preferido:
-   * **Opción con Foto (Automático con IA):**
-     * En el recuadro *"Escaneo Rápido de Hoja Base Maestra con IA"*, sube la foto de tu hoja contestada con las respuestas maestras.
-     * La IA detectará los 115 reactivos y los volcará en la grilla interactiva.
+   * **Opción con Foto o Cámara (Automático con IA):**
+     * En el recuadro *"Escaneo Rápido de Hoja Base Maestra con IA"* ahora cuentas con 3 opciones directas:
+       * **📸 Tomar Foto con Cámara:** Abre directamente la cámara trasera de tu smartphone para capturar la hoja al instante con enfoque automático.
+       * **📹 Visor de Cámara en Vivo:** Abre un visor interactivo en pantalla con retícula de alineación para capturar desde la webcam de una laptop o computadora.
+       * **📁 Subir desde Archivo:** Permite elegir una imagen existente de tu galería o disco duro.
+     * La IA detectará los 115 reactivos en segundos y los volcará en la grilla interactiva.
    * **Opción Manual (Clic en Grilla):**
      * Puedes hacer clic directamente en las burbujas **A, B, C o D** de las secciones:
        * **Lectura:** Preguntas 1 a 45.

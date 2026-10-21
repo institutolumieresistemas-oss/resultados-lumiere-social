@@ -1,7 +1,7 @@
 <?php
 /**
  * ====================================================================
- * Configuración del Bot Calificador de Exámenes Instituto Lumière
+ * Configuración del Sistema Calificador Web - Instituto Lumière
  * ====================================================================
  */
 
@@ -10,11 +10,7 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 error_reporting(E_ALL);
 
-// 1. Token oficial de tu bot de Telegram (@CalificadorLumierebot)
-define('TELEGRAM_BOT_TOKEN', '8556272800:AAFUVsgKFajQWBvY_IKAjCcV0x2DH35l5Pk');
-define('TELEGRAM_BOT_USERNAME', 'CalificadorLumierebot');
-
-// 2. Tu API Key de Google Gemini
+// 1. Tu API Key de Google Gemini
 $geminiKeyFallback = base64_decode('QVEuQWI4Uk42SXNIc0V2ejFkVGNOUk1Deld3MndFREZvRTBiMmJQNlZSWEVyRlpyUVBrR2c=');
 define('GEMINI_API_KEY', getenv('GEMINI_API_KEY') ?: $geminiKeyFallback);
 
@@ -22,14 +18,10 @@ define('GEMINI_API_KEY', getenv('GEMINI_API_KEY') ?: $geminiKeyFallback);
 define('GEMINI_PRIMARY_MODEL', 'gemini-3.5-flash-lite');
 define('GEMINI_FALLBACK_MODEL', 'gemini-3-flash-preview');
 
-// 3. URLs oficiales de Telegram API
-define('TELEGRAM_API_URL', 'https://api.telegram.org/bot' . TELEGRAM_BOT_TOKEN . '/');
-define('TELEGRAM_FILE_URL', 'https://api.telegram.org/file/bot' . TELEGRAM_BOT_TOKEN . '/');
-
-// 4. Clave de Administración Docente para calificador.lumieresiga.com
+// 2. Clave de Administración Docente para calificador.lumieresiga.com
 define('ADMIN_PASSWORD', 'lumiere2026');
 
-// 5. Archivos locales y directorios compartidos entre subdominios
+// 3. Archivos locales y directorios compartidos entre subdominios
 // (calificador y resultados)
 $sharedDir = __DIR__;
 if (file_exists(__DIR__ . '/../calificador/claves.json') || file_exists(__DIR__ . '/../calificador/alumnos.json')) {
@@ -43,8 +35,7 @@ define('CLAVES_FILE', $sharedDir . '/claves.json');
 define('TABULADOR_FILE', $sharedDir . '/tabulador.json');
 define('ALUMNOS_FILE', $sharedDir . '/alumnos.json');
 define('UPLOADS_DIR', $sharedDir . '/uploads');
-define('LOG_FILE', $sharedDir . '/bot.log');
-define('STATES_FILE', $sharedDir . '/chat_states.json');
+define('LOG_FILE', $sharedDir . '/calificador.log');
 
 // Asegurar directorio de uploads
 if (!is_dir(UPLOADS_DIR)) {
@@ -95,52 +86,9 @@ function obtener_alumno($nombre) {
 }
 
 /**
- * Obtiene el estado temporal de conversación de un chat
+ * Función para registrar mensajes de depuración en calificador.log
  */
-function get_chat_state($chatId) {
-    if (!file_exists(STATES_FILE)) return null;
-    $states = json_decode(file_get_contents(STATES_FILE), true);
-    if (!isset($states[$chatId])) return null;
-    $s = $states[$chatId];
-    // Expirar si pasaron más de 30 minutos (1800 s)
-    if (time() - ($s['timestamp'] ?? 0) > 1800) {
-        clear_chat_state($chatId);
-        return null;
-    }
-    return $s;
-}
-
-/**
- * Establece el estado temporal de conversación de un chat
- */
-function set_chat_state($chatId, $estado, $data = []) {
-    $states = [];
-    if (file_exists(STATES_FILE)) {
-        $states = json_decode(file_get_contents(STATES_FILE), true) ?: [];
-    }
-    $states[$chatId] = array_merge($data, [
-        'estado' => $estado,
-        'timestamp' => time()
-    ]);
-    file_put_contents(STATES_FILE, json_encode($states, JSON_PRETTY_PRINT));
-}
-
-/**
- * Limpia el estado de conversación de un chat
- */
-function clear_chat_state($chatId) {
-    if (!file_exists(STATES_FILE)) return;
-    $states = json_decode(file_get_contents(STATES_FILE), true) ?: [];
-    if (isset($states[$chatId])) {
-        unset($states[$chatId]);
-        file_put_contents(STATES_FILE, json_encode($states, JSON_PRETTY_PRINT));
-    }
-}
-
-/**
- * Función para registrar mensajes de depuración en bot.log
- */
-function bot_log($message) {
+function app_log($message) {
     $time = date('Y-m-d H:i:s');
     if (is_array($message) || is_object($message)) {
         $message = json_encode($message, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -148,101 +96,7 @@ function bot_log($message) {
     file_put_contents(LOG_FILE, "[$time] $message\n", FILE_APPEND);
 }
 
-/**
- * Envía una petición cURL a la API de Telegram
- */
-function telegram_request($method, $params = []) {
-    $url = TELEGRAM_API_URL . $method;
-    $ch = curl_init();
-    
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    
-    $response = curl_exec($ch);
-    $error = curl_error($ch);
-    curl_close($ch);
-    
-    if ($error) {
-        bot_log("Error Telegram cURL ($method): " . $error);
-        return false;
-    }
-    
-    return json_decode($response, true);
+// Alias para compatibilidad con código existente
+function bot_log($message) {
+    app_log($message);
 }
-
-/**
- * Envía un mensaje de texto formateado en HTML a un chat de Telegram
- */
-function telegram_send_message($chatId, $text, $replyToMessageId = null, $replyMarkup = null) {
-    $params = [
-        'chat_id' => $chatId,
-        'text' => $text,
-        'parse_mode' => 'HTML',
-        'disable_web_page_preview' => true
-    ];
-    
-    if ($replyToMessageId) {
-        $params['reply_to_message_id'] = $replyToMessageId;
-    }
-    
-    if ($replyMarkup) {
-        $params['reply_markup'] = $replyMarkup;
-    }
-    
-    return telegram_request('sendMessage', $params);
-}
-
-/**
- * Envía una acción de chat (ej: "typing", "upload_photo")
- */
-function telegram_send_action($chatId, $action = 'typing') {
-    return telegram_request('sendChatAction', [
-        'chat_id' => $chatId,
-        'action' => $action
-    ]);
-}
-
-/**
- * Envía una fotografía a un chat de Telegram
- */
-function telegram_send_photo($chatId, $imageBytes, $caption = null, $replyToMessageId = null) {
-    $tempFile = tempnam(sys_get_temp_dir(), 'tg_img_') . '.jpg';
-    file_put_contents($tempFile, $imageBytes);
-    
-    $url = TELEGRAM_API_URL . 'sendPhoto';
-    $postFields = [
-        'chat_id' => $chatId,
-        'photo' => new CURLFile($tempFile, 'image/jpeg', 'escaneo_anotado.jpg')
-    ];
-    if ($caption) {
-        $postFields['caption'] = $caption;
-        $postFields['parse_mode'] = 'HTML';
-    }
-    if ($replyToMessageId) {
-        $postFields['reply_to_message_id'] = $replyToMessageId;
-    }
-    
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 45);
-    $response = curl_exec($ch);
-    $error = curl_error($ch);
-    curl_close($ch);
-    @unlink($tempFile);
-
-    if ($error) {
-        bot_log("Error Telegram sendPhoto: " . $error);
-        return false;
-    }
-    
-    return json_decode($response, true);
-}
-

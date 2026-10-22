@@ -2,14 +2,15 @@
 /**
  * ====================================================================
  * Cliente de Inteligencia Artificial Google Gemini Vision
- * (Con Sistema de Multi-Recorte de Alta Resolución para Secciones OMR)
+ * (Sistema de Multi-Recorte Seccional OMR de Alta Resolución)
+ * Instituto Lumière - Exámenes de Admisión PAA
  * ====================================================================
  */
 
 require_once __DIR__ . '/config.php';
 
 /**
- * 1. Detecta los 4 cuadros negros de referencia en las esquinas de la hoja con Gemini AI.
+ * 1. Detecta los 4 cuadros negros de calibración/alineación en las esquinas de la hoja.
  * 
  * @param string $imageBytes Contenido binario de la imagen
  * @param string $mimeType Tipo MIME
@@ -54,43 +55,12 @@ EOT;
         ]
     ];
 
-    $models = array_unique([
-        GEMINI_PRIMARY_MODEL,
-        GEMINI_FALLBACK_MODEL,
-        'gemini-3.5-flash',
-        'gemini-3-flash-preview',
-        'gemini-3.5-flash-lite',
-        'gemini-3.6-flash'
-    ]);
-
-    foreach ($models as $model) {
-        $endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . GEMINI_API_KEY;
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $endpoint);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($httpCode !== 200) {
-            continue;
-        }
-
-        $resData = json_decode($response, true);
-        $rawText = trim($resData['candidates'][0]['content']['parts'][0]['text'] ?? '');
-        if (preg_match('/^```(?:json)?\s*(.*?)\s*```$/s', $rawText, $matches)) {
-            $rawText = trim($matches[1]);
-        }
-
-        $detectedBoxes = json_decode($rawText, true);
-        if (is_array($detectedBoxes) && isset($detectedBoxes['top_left'], $detectedBoxes['top_right'], $detectedBoxes['bottom_right'], $detectedBoxes['bottom_left'])) {
-            bot_log("Gemini ({$model}) detectó los 4 cuadros negros de la hoja.");
-            return $detectedBoxes;
+    $res = gemini_ejecutar_peticion($payload, 25);
+    if ($res['exito'] && is_array($res['data'])) {
+        $boxes = $res['data'];
+        if (isset($boxes['top_left'], $boxes['top_right'], $boxes['bottom_right'], $boxes['bottom_left'])) {
+            bot_log("Gemini ({$res['modelo']}) detectó los 4 cuadros negros de la hoja.");
+            return $boxes;
         }
     }
 
@@ -99,8 +69,8 @@ EOT;
 }
 
 /**
- * 2. Pasa los cuadros negros detectados a OpenCV en PHP (mediante align_opencv.py)
- * para realizar la transformación de perspectiva y acomodar la imagen.
+ * 2. Pasa los cuadros negros detectados a OpenCV en Python (mediante align_opencv.py)
+ * para realizar la transformación de perspectiva y acomodar la imagen plana.
  * 
  * @param string $imageBytes Contenido binario de la imagen
  * @param array $cuadrosNegros Coordenadas de los 4 cuadros
@@ -146,14 +116,7 @@ function opencv_alinear_hoja($imageBytes, $cuadrosNegros) {
 }
 
 /**
- * 3. Proceso completo solicitado por el usuario:
- * - Detectar los 4 cuadros negros con IA.
- * - Pasar a OpenCV en PHP para acomodar la imagen con esos cuadros.
- * - Enviar la imagen acomodada a la IA para calificar.
- * 
- * @param string $imageBytes
- * @param string $mimeType
- * @return array
+ * 3. Proceso de alineación si se requiere
  */
 function gemini_procesar_hoja_con_alineacion($imageBytes, $mimeType = 'image/jpeg') {
     $cuadros = gemini_detectar_cuadros_negros($imageBytes, $mimeType);
@@ -169,7 +132,6 @@ function gemini_procesar_hoja_con_alineacion($imageBytes, $mimeType = 'image/jpe
         }
     }
 
-    // Analizar con Gemini la hoja (ya rectificada y acomodada si tuvo éxito)
     $respuestas = gemini_analyze_sheet($imagenAlineada, 'image/jpeg');
 
     return [
@@ -181,27 +143,21 @@ function gemini_procesar_hoja_con_alineacion($imageBytes, $mimeType = 'image/jpe
 }
 
 /**
- * Llama a la API de Google Gemini para analizar la hoja de respuestas
- * Utiliza división inteligente por secciones para maximizar la resolución de burbujas.
- * 
- * @param string $imageBytes Contenido binario de la imagen
- * @param string $mimeType Tipo MIME de la imagen (image/jpeg, image/png)
- * @return array|false Datos estructurados en array o false en error
- */
-/**
- * Función central para ejecutar peticiones a la API de Gemini con rotación automática de modelos
+ * 4. Función central para ejecutar peticiones a la API de Gemini con rotación automática de modelos
  */
 function gemini_ejecutar_peticion($payload, $timeout = 30) {
+    if (empty(GEMINI_API_KEY) || GEMINI_API_KEY === 'TU_GEMINI_API_KEY_AQUI') {
+        return ['exito' => false, 'error' => 'API Key de Gemini no configurada'];
+    }
+
     $models = array_unique([
-        GEMINI_PRIMARY_MODEL,
-        'gemini-3.8-flash',
-        'gemini-3.1-pro-preview',
-        'gemini-pro-latest',
-        GEMINI_FALLBACK_MODEL,
         'gemini-3.5-flash-lite',
-        'gemini-flash-latest',
         'gemini-3-flash-preview',
-        'gemini-3.5-flash'
+        'gemini-3.5-flash',
+        GEMINI_PRIMARY_MODEL,
+        GEMINI_FALLBACK_MODEL,
+        'gemini-flash-latest',
+        'gemini-3.8-flash'
     ]);
 
     $lastError = '';
@@ -267,9 +223,8 @@ function gemini_ejecutar_peticion($payload, $timeout = 30) {
 }
 
 /**
- * Preprocesamiento óptico de imagen para maximizar la precisión OMR:
- * Convierte a escala de grises para eliminar sombras de luz cálida, incrementa
- * drásticamente el contraste para resaltar el grafito del lápiz y blanquea el fondo.
+ * 5. Preprocesamiento óptico de imagen para maximizar la precisión OMR:
+ * Escala de grises, aumento de contraste para resaltar el grafito del lápiz y normalización.
  */
 function gemini_mejorar_imagen_omr($imageBytes) {
     if (!function_exists('imagecreatefromstring')) {
@@ -278,16 +233,9 @@ function gemini_mejorar_imagen_omr($imageBytes) {
     $im = @imagecreatefromstring($imageBytes);
     if (!$im) return $imageBytes;
 
-    // 1. Escala de grises: elimina ruido de temperatura de color y sombras de teléfono
     imagefilter($im, IMG_FILTER_GRAYSCALE);
-
-    // 2. Alto contraste dinámico: hace que el lápiz resalte oscuro profundo sobre el papel
     imagefilter($im, IMG_FILTER_CONTRAST, -25);
-
-    // 3. Normalizar brillo del papel para llevarlo a blanco puro
     imagefilter($im, IMG_FILTER_BRIGHTNESS, 10);
-
-    // 4. Suavizado sutil para limpiar artefactos de compresión JPG
     imagefilter($im, IMG_FILTER_SMOOTH, 1);
 
     ob_start();
@@ -299,114 +247,363 @@ function gemini_mejorar_imagen_omr($imageBytes) {
 }
 
 /**
- * Analiza una sección recortada individual con instrucciones precisas para OMR PAA
- * (Garantiza que no haya mezcla entre secciones ni confusión de opciones)
+ * 6. Genera los recortes de alta resolución de cada sección de la hoja de respuestas
  */
-function gemini_analizar_seccion_individual($imageBytes, $seccion) {
-    // Aplicar preprocesamiento visual de alto contraste antes de enviar a Gemini
-    $imageBytesOptimizado = gemini_mejorar_imagen_omr($imageBytes);
-
-    if ($seccion === 'lectura') {
-        $prompt = <<<EOT
-Eres un lector óptico OMR de máxima precisión para hojas de respuestas de examen de admisión PAA (College Board).
-Esta imagen corresponde ÚNICAMENTE a la "Parte 1 Lectura" (Preguntas 1 a 45).
-Estructura: 5 columnas verticales con 9 preguntas cada una:
-- Columna 1: preguntas 1 a 9
-- Columna 2: preguntas 10 a 18
-- Columna 3: preguntas 19 a 27
-- Columna 4: preguntas 28 a 36
-- Columna 5: preguntas 37 a 45
-
-REGLAS ESTRICTAS DE DETECCIÓN OMR:
-1. Cada pregunta tiene exactamente 4 opciones de izquierda a derecha: A, B, C, D (1ª=A, 2ª=B, 3ª=C, 4ª=D).
-2. NO EXISTE LA OPCIÓN E. No incluyas la letra E bajo ninguna circunstancia.
-3. Para cada número del 1 al 45, determina la letra de la burbuja que tenga el relleno intencional con lápiz más oscuro.
-4. Descarta borrones tenues o marcas borradas; selecciona únicamente la opción marcada definitivamente.
-5. Si una pregunta está vacía (sin marcar), no la incluyas en el JSON.
-
-Devuelve ÚNICAMENTE un objeto JSON:
-{"1": "A", "2": "B"}
-EOT;
-    } elseif ($seccion === 'redaccion') {
-        $prompt = <<<EOT
-Eres un lector óptico OMR de máxima precisión para hojas de respuestas de examen de admisión PAA (College Board).
-Esta imagen corresponde ÚNICAMENTE a la "Parte 2 Redacción" (Preguntas 1 a 25).
-Estructura: 5 columnas verticales con 5 preguntas cada una:
-- Columna 1: preguntas 1 a 5
-- Columna 2: preguntas 6 a 10
-- Columna 3: preguntas 11 a 15
-- Columna 4: preguntas 16 a 20
-- Columna 5: preguntas 21 a 25
-
-REGLAS ESTRICTAS DE DETECCIÓN OMR:
-1. Cada pregunta tiene exactamente 4 opciones de izquierda a derecha: A, B, C, D (1ª=A, 2ª=B, 3ª=C, 4ª=D).
-2. NO EXISTE LA OPCIÓN E. No incluyas la letra E bajo ninguna circunstancia.
-3. Para cada número del 1 al 25, determina la letra de la burbuja que tenga el relleno intencional con lápiz más oscuro.
-4. Descarta borrones tenues o marcas borradas; selecciona únicamente la opción marcada definitivamente.
-5. Si una pregunta está vacía (sin marcar), no la incluyas en el JSON.
-
-Devuelve ÚNICAMENTE un objeto JSON:
-{"1": "C", "2": "D"}
-EOT;
-    } else { // matematicas
-        $prompt = <<<EOT
-Eres un lector óptico OMR de máxima precisión para hojas de respuestas de examen de admisión PAA (College Board).
-Esta imagen corresponde a la "Parte 3 Matemáticas" (Preguntas 1 a 45 de opción múltiple).
-Estructura: 3 columnas verticales con 15 preguntas cada una:
-- Columna 1: preguntas 1 a 15
-- Columna 2: preguntas 16 a 30
-- Columna 3: preguntas 31 a 45
-(Ignora por completo las cuadrículas numéricas tipo Grid 46 a 55).
-
-REGLAS ESTRICTAS DE DETECCIÓN OMR:
-1. Cada pregunta tiene exactamente 4 opciones de izquierda a derecha: A, B, C, D (1ª=A, 2ª=B, 3ª=C, 4ª=D).
-2. NO EXISTE LA OPCIÓN E. No incluyas la letra E bajo ninguna circunstancia.
-3. Para cada número del 1 al 45, determina la letra de la burbuja que tenga el relleno intencional con lápiz más oscuro.
-4. Descarta borrones tenues o marcas borradas; selecciona únicamente la opción marcada definitivamente.
-5. Si una pregunta está vacía (sin marcar), no la incluyas en el JSON.
-
-Devuelve ÚNICAMENTE un objeto JSON:
-{"1": "A", "2": "B"}
-EOT;
+function gemini_preparar_recortes_completos($imageBytes) {
+    if (!function_exists('imagecreatefromstring')) {
+        return false;
     }
 
-    $payload = [
-        'contents' => [[
-            'parts' => [
-                ['text' => $prompt],
-                ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => base64_encode($imageBytesOptimizado)]]
-            ]
-        ]],
-        'generationConfig' => [
-            'response_mime_type' => 'application/json',
-            'temperature' => 0.0
-        ]
-    ];
+    $img = @imagecreatefromstring($imageBytes);
+    if (!$img) return false;
 
-    $res = gemini_ejecutar_peticion($payload, 25);
-    if ($res['exito'] && is_array($res['data'])) {
-        // Filtrar y validar opciones estrictas A, B, C, D
-        $limpias = [];
-        foreach ($res['data'] as $num => $val) {
-            $valStr = strtoupper(trim((string)$val));
-            if (in_array($valStr, ['A', 'B', 'C', 'D'])) {
-                $limpias[(string)$num] = $valStr;
+    // 1. Corregir orientación EXIF
+    if (function_exists('exif_read_data') && function_exists('imagerotate')) {
+        $stream = fopen('php://memory', 'r+');
+        if ($stream) {
+            fwrite($stream, $imageBytes);
+            rewind($stream);
+            $exif = @exif_read_data($stream);
+            fclose($stream);
+
+            if (!empty($exif['Orientation'])) {
+                switch ($exif['Orientation']) {
+                    case 3: $img = imagerotate($img, 180, 0); break;
+                    case 6: $img = imagerotate($img, -90, 0); break;
+                    case 8: $img = imagerotate($img, 90, 0); break;
+                }
             }
         }
-        bot_log("Gemini ({$res['modelo']}) detectó " . count($limpias) . " reactivos en {$seccion}");
-        return $limpias;
     }
 
-    return [];
+    $w = imagesx($img);
+    $h = imagesy($img);
+
+    // 2. Si la imagen quedó en horizontal (w > h), rotar a vertical
+    if ($w > $h && function_exists('imagerotate')) {
+        $img = imagerotate($img, -90, 0);
+        $w = imagesx($img);
+        $h = imagesy($img);
+    }
+
+    $helperCrop = function($rect) use ($img) {
+        $c = @imagecrop($img, $rect);
+        if (!$c) return false;
+        ob_start();
+        imagejpeg($c, null, 95);
+        $bytes = ob_get_clean();
+        imagedestroy($c);
+        return $bytes;
+    };
+
+    // Coordenadas proporcionales óptimas para la hoja oficial Lumière
+    $crops = [
+        'lectura' => $helperCrop([
+            'x' => (int)($w * 0.26),
+            'y' => (int)($h * 0.12),
+            'width' => (int)($w * 0.70),
+            'height' => (int)($h * 0.16)
+        ]),
+        'redaccion' => $helperCrop([
+            'x' => (int)($w * 0.26),
+            'y' => (int)($h * 0.24),
+            'width' => (int)($w * 0.70),
+            'height' => (int)($h * 0.12)
+        ]),
+        'matematicas_mc' => $helperCrop([
+            'x' => (int)($w * 0.27),
+            'y' => (int)($h * 0.32),
+            'width' => (int)($w * 0.44),
+            'height' => (int)($h * 0.21)
+        ]),
+        'matematicas_46_47' => $helperCrop([
+            'x' => (int)($w * 0.66),
+            'y' => (int)($h * 0.32),
+            'width' => (int)($w * 0.30),
+            'height' => (int)($h * 0.21)
+        ]),
+        'matematicas_48_51' => $helperCrop([
+            'x' => (int)($w * 0.02),
+            'y' => (int)($h * 0.49),
+            'width' => (int)($w * 0.49),
+            'height' => (int)($h * 0.20)
+        ]),
+        'matematicas_52_55' => $helperCrop([
+            'x' => (int)($w * 0.49),
+            'y' => (int)($h * 0.49),
+            'width' => (int)($w * 0.49),
+            'height' => (int)($h * 0.20)
+        ]),
+        'datos_alumno' => $helperCrop([
+            'x' => 0,
+            'y' => (int)($h * 0.10),
+            'width' => (int)($w * 0.35),
+            'height' => (int)($h * 0.25)
+        ])
+    ];
+
+    imagedestroy($img);
+
+    if ($crops['lectura'] && $crops['redaccion'] && $crops['matematicas_mc']) {
+        return $crops;
+    }
+
+    return false;
 }
 
 /**
- * Llama a la API de Google Gemini para analizar la hoja de respuestas
- * Utiliza división inteligente por secciones para maximizar la resolución de burbujas.
+ * 7. Analiza la Parte 1 (Lectura - 45 preguntas de opción múltiple A, B, C, D)
+ */
+function gemini_analizar_lectura($imageBytes) {
+    $opt = gemini_mejorar_imagen_omr($imageBytes);
+    $prompt = <<<EOT
+Eres un lector óptico OMR de máxima precisión para hojas de respuestas de examen PAA.
+Esta imagen corresponde a "Parte 1 Lectura" (Preguntas 1 a 45).
+Estructura: 5 columnas verticales:
+- Columna 1: reactivos 1 a 9
+- Columna 2: reactivos 10 a 18
+- Columna 3: reactivos 19 a 27
+- Columna 4: reactivos 28 a 36
+- Columna 5: reactivos 37 a 45
+
+Reglas estrictas OMR:
+1. Cada pregunta tiene exactamente 4 opciones: A, B, C, D. No existe la opción E.
+2. Identifica para cada número la letra de la burbuja que tenga el relleno intencional con lápiz más oscuro y nítido.
+3. Si una pregunta está vacía (sin contestar), no la incluyas en el JSON.
+4. Descarta borrones o marcas tenues.
+
+Devuelve ÚNICAMENTE un JSON con claves del "1" al "45":
+{"1": "A", "2": "B"}
+EOT;
+
+    $payload = [
+        'contents' => [['parts' => [
+            ['text' => $prompt],
+            ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => base64_encode($opt)]]
+        ]]],
+        'generationConfig' => ['response_mime_type' => 'application/json', 'temperature' => 0.0]
+    ];
+
+    $res = gemini_ejecutar_peticion($payload, 30);
+    $limpias = [];
+    if ($res['exito'] && is_array($res['data'])) {
+        foreach ($res['data'] as $num => $val) {
+            $v = strtoupper(trim((string)$val));
+            if (in_array($v, ['A', 'B', 'C', 'D'])) {
+                $limpias[(string)$num] = $v;
+            }
+        }
+    }
+    bot_log("Gemini detectó " . count($limpias) . " reactivos en Lectura");
+    return $limpias;
+}
+
+/**
+ * 8. Analiza la Parte 2 (Redacción - 25 preguntas de opción múltiple A, B, C, D)
+ */
+function gemini_analizar_redaccion($imageBytes) {
+    $opt = gemini_mejorar_imagen_omr($imageBytes);
+    $prompt = <<<EOT
+Eres un lector óptico OMR de máxima precisión para hojas de respuestas de examen PAA.
+Esta imagen corresponde a "Parte 2 Redacción" (Preguntas 1 a 25).
+Estructura: 5 columnas verticales con 5 reactivos cada una:
+- Columna 1: reactivos 1 a 5
+- Columna 2: reactivos 6 a 10
+- Columna 3: reactivos 11 a 15
+- Columna 4: reactivos 16 a 20
+- Columna 5: reactivos 21 a 25
+
+Reglas estrictas OMR:
+1. Cada pregunta tiene 4 opciones: A, B, C, D. No existe la opción E.
+2. Identifica la letra de la burbuja con el relleno más oscuro y definitivo.
+3. Si una pregunta está vacía, no la incluyas en el JSON.
+4. Descarta marcas borradas.
+
+Devuelve ÚNICAMENTE un JSON con claves del "1" al "25":
+{"1": "C", "2": "D"}
+EOT;
+
+    $payload = [
+        'contents' => [['parts' => [
+            ['text' => $prompt],
+            ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => base64_encode($opt)]]
+        ]]],
+        'generationConfig' => ['response_mime_type' => 'application/json', 'temperature' => 0.0]
+    ];
+
+    $res = gemini_ejecutar_peticion($payload, 30);
+    $limpias = [];
+    if ($res['exito'] && is_array($res['data'])) {
+        foreach ($res['data'] as $num => $val) {
+            $v = strtoupper(trim((string)$val));
+            if (in_array($v, ['A', 'B', 'C', 'D'])) {
+                $limpias[(string)$num] = $v;
+            }
+        }
+    }
+    bot_log("Gemini detectó " . count($limpias) . " reactivos en Redacción");
+    return $limpias;
+}
+
+/**
+ * 9. Analiza la Parte 3 (Matemáticas - 45 preguntas de opción múltiple 1 a 45)
+ */
+function gemini_analizar_matematicas_mc($imageBytes) {
+    $opt = gemini_mejorar_imagen_omr($imageBytes);
+    $prompt = <<<EOT
+Eres un lector óptico OMR de máxima precisión para hojas de respuestas de examen PAA.
+Esta imagen corresponde a "Parte 3 Matemáticas" (Preguntas 1 a 45 de opción múltiple).
+Estructura: 3 columnas verticales de 15 preguntas cada una:
+- Columna 1: reactivos 1 a 15
+- Columna 2: reactivos 16 a 30
+- Columna 3: reactivos 31 a 45
+
+Reglas estrictas OMR:
+1. Opciones posibles: A, B, C, D. No existe la opción E.
+2. Identifica la letra de la burbuja más oscura en cada reactivo.
+3. Si una pregunta está vacía, omítela.
+
+Devuelve ÚNICAMENTE un JSON con claves del "1" al "45":
+{"1": "A", "2": "B"}
+EOT;
+
+    $payload = [
+        'contents' => [['parts' => [
+            ['text' => $prompt],
+            ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => base64_encode($opt)]]
+        ]]],
+        'generationConfig' => ['response_mime_type' => 'application/json', 'temperature' => 0.0]
+    ];
+
+    $res = gemini_ejecutar_peticion($payload, 30);
+    $limpias = [];
+    if ($res['exito'] && is_array($res['data'])) {
+        foreach ($res['data'] as $num => $val) {
+            $v = strtoupper(trim((string)$val));
+            if (in_array($v, ['A', 'B', 'C', 'D'])) {
+                $limpias[(string)$num] = $v;
+            }
+        }
+    }
+    bot_log("Gemini detectó " . count($limpias) . " reactivos en Matemáticas Opción Múltiple");
+    return $limpias;
+}
+
+/**
+ * 10. Analiza las Cuadrículas Numéricas Abiertas de Matemáticas (Reactivos 46 a 55)
+ */
+function gemini_analizar_matematicas_grid($bytes46_47, $bytes48_51, $bytes52_55 = null) {
+    $gridAnswers = [];
+
+    $promptRules = <<<EOT
+Eres un lector óptico OMR de máxima precisión para cuadrículas numéricas del examen PAA (College Board).
+Cada recuadro tiene 4 columnas verticales:
+- Fila 1 (arriba de la línea divisoria horizontal): barra de fracción '/' (en columnas 2 y 3).
+- Fila 2 (arriba de la línea divisoria horizontal): punto decimal '.' (en columnas 1, 2, 3).
+- Fila 0 (debajo de la línea divisoria horizontal): dígito 0 (en columnas 2, 3, 4).
+- Filas 1 al 9: dígitos del 1 al 9 en las 4 columnas.
+
+Reglas matemáticas indispensables:
+1. Una respuesta NUNCA puede comenzar con la barra '/'. Si una marca previa a un número está en la fila 2 de puntos, es un punto decimal '.' (ejemplo: '.5' o '.33').
+2. Cuenta con precisión la fila del dígito rellenado (0 al 9) debajo de la línea divisoria.
+3. Concatena los caracteres rellenados con lápiz oscuro de izquierda a derecha. Si una columna está vacía (sin rellenar), no aporta carácter.
+EOT;
+
+    // Helper para procesar respuesta de grid
+    $sanitizarGrid = function($val) {
+        $clean = preg_replace('/[^0-9\/\.\-]/', '', trim((string)$val));
+        if ($clean === '/' || $clean === '.' || $clean === '') return '';
+        // Corregir barra inicial si es decimal (.33 o .5)
+        if (strpos($clean, '/') === 0 && strlen($clean) > 1 && is_numeric(substr($clean, 1))) {
+            $clean = '.' . substr($clean, 1);
+        }
+        return $clean;
+    };
+
+    // 10.1 Cuadrículas 46 y 47
+    if ($bytes46_47) {
+        $opt = gemini_mejorar_imagen_omr($bytes46_47);
+        $payload46 = [
+            'contents' => [['parts' => [
+                ['text' => $promptRules . "\nEn esta imagen están los ejercicios 46 y 47. Devuelve ÚNICAMENTE un JSON con formato: {\"46\": \"...\", \"47\": \"...\"}"],
+                ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => base64_encode($opt)]]
+            ]]],
+            'generationConfig' => ['response_mime_type' => 'application/json', 'temperature' => 0.0]
+        ];
+
+        $res = gemini_ejecutar_peticion($payload46, 25);
+        if ($res['exito'] && is_array($res['data'])) {
+            foreach ($res['data'] as $k => $v) {
+                $c = $sanitizarGrid($v);
+                if (!empty($c)) $gridAnswers[(string)$k] = $c;
+            }
+        }
+    }
+
+    // 10.2 Cuadrículas 48 a 51
+    if ($bytes48_51) {
+        $opt = gemini_mejorar_imagen_omr($bytes48_51);
+        $payload48 = [
+            'contents' => [['parts' => [
+                ['text' => $promptRules . "\nEn esta imagen están los 4 ejercicios 48, 49, 50 y 51 de izquierda a derecha. Devuelve ÚNICAMENTE un JSON con claves '48', '49', '50', '51': {\"48\": \"...\", \"49\": \"...\", \"50\": \"...\", \"51\": \"...\"}"],
+                ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => base64_encode($opt)]]
+            ]]],
+            'generationConfig' => ['response_mime_type' => 'application/json', 'temperature' => 0.0]
+        ];
+
+        $res = gemini_ejecutar_peticion($payload48, 25);
+        if ($res['exito'] && is_array($res['data'])) {
+            foreach ($res['data'] as $k => $v) {
+                $c = $sanitizarGrid($v);
+                if (!empty($c)) $gridAnswers[(string)$k] = $c;
+            }
+        }
+    }
+
+    // 10.3 Cuadrículas 52 a 55
+    if ($bytes52_55) {
+        $opt = gemini_mejorar_imagen_omr($bytes52_55);
+        $payload52 = [
+            'contents' => [['parts' => [
+                ['text' => $promptRules . "\nEn esta imagen están los 4 ejercicios 52, 53, 54 y 55 de izquierda a derecha. Devuelve ÚNICAMENTE un JSON con claves '52', '53', '54', '55': {\"52\": \"...\", \"53\": \"...\", \"54\": \"...\", \"55\": \"...\"}"],
+                ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => base64_encode($opt)]]
+            ]]],
+            'generationConfig' => ['response_mime_type' => 'application/json', 'temperature' => 0.0]
+        ];
+
+        $res = gemini_ejecutar_peticion($payload52, 25);
+        if ($res['exito'] && is_array($res['data'])) {
+            foreach ($res['data'] as $k => $v) {
+                $c = $sanitizarGrid($v);
+                if (!empty($c)) $gridAnswers[(string)$k] = $c;
+            }
+        }
+    }
+
+    bot_log("Gemini detectó " . count($gridAnswers) . " ejercicios en Matemáticas Abiertas (Grid 46-55)");
+    return $gridAnswers;
+}
+
+/**
+ * 11. Analiza una sección recortada individual (mantiene compatibilidad)
+ */
+function gemini_analizar_seccion_individual($imageBytes, $seccion) {
+    if ($seccion === 'lectura') {
+        return gemini_analizar_lectura($imageBytes);
+    } elseif ($seccion === 'redaccion') {
+        return gemini_analizar_redaccion($imageBytes);
+    } else {
+        return gemini_analizar_matematicas_mc($imageBytes);
+    }
+}
+
+/**
+ * 12. Función principal que analiza la hoja de respuestas:
+ * Utiliza el pipeline seccional de alta resolución y respaldo en imagen completa si se requiere.
  * 
  * @param string $imageBytes Contenido binario de la imagen
- * @param string $mimeType Tipo MIME de la imagen (image/jpeg, image/png)
- * @return array|false Datos estructurados en array o false en error
+ * @param string $mimeType Tipo MIME de la imagen
+ * @return array Datos estructurados por sección
  */
 function gemini_analyze_sheet($imageBytes, $mimeType = 'image/jpeg') {
     if (empty(GEMINI_API_KEY) || GEMINI_API_KEY === 'TU_GEMINI_API_KEY_AQUI') {
@@ -414,24 +611,25 @@ function gemini_analyze_sheet($imageBytes, $mimeType = 'image/jpeg') {
         return ['error' => 'API Key de Gemini no configurada'];
     }
 
-    // 1. Analisis directo de imagen completa (100% de la hoja en 1 peticion de 4 segundos)
-    $resultadoFull = gemini_analyze_sheet_full($imageBytes, $mimeType);
-    if (!isset($resultadoFull['error'])) {
-        $totalFull = count($resultadoFull['lectura']) + count($resultadoFull['redaccion']) + count($resultadoFull['matematicas']);
-        if ($totalFull >= 20) {
-            return $resultadoFull;
-        }
-    }
+    // 1. Pipeline de Multi-Recorte de Alta Resolución
+    $recortes = gemini_preparar_recortes_completos($imageBytes);
+    if ($recortes !== false) {
+        $resLec = gemini_analizar_lectura($recortes['lectura']);
+        $resRed = gemini_analizar_redaccion($recortes['redaccion']);
+        $resMatMC = gemini_analizar_matematicas_mc($recortes['matematicas_mc']);
+        $resMatGrid = gemini_analizar_matematicas_grid(
+            $recortes['matematicas_46_47'] ?? null,
+            $recortes['matematicas_48_51'] ?? null,
+            $recortes['matematicas_52_55'] ?? null
+        );
 
-    // 2. Si la imagen completa arrojo muy poco, intentar multi-recorte como respaldo
-    $recortes = gemini_preparar_recortes_secciones($imageBytes);
-    if ($recortes !== false && count($recortes) === 3) {
-        $resLec = gemini_analizar_seccion_individual($recortes[0], 'lectura');
-        $resRed = gemini_analizar_seccion_individual($recortes[1], 'redaccion');
-        $resMat = gemini_analizar_seccion_individual($recortes[2], 'matematicas');
+        $resMat = array_merge($resMatMC, $resMatGrid);
+        ksort($resMat, SORT_NUMERIC);
 
-        $total = count($resLec) + count($resRed) + count($resMat);
-        if ($total >= 20) {
+        $totalDetectadas = count($resLec) + count($resRed) + count($resMat);
+        bot_log("Pipeline Seccional OMR completado: {$totalDetectadas} respuestas detectadas (Lec: " . count($resLec) . ", Red: " . count($resRed) . ", Mat: " . count($resMat) . ").");
+
+        if ($totalDetectadas >= 15) {
             return [
                 'lectura' => $resLec,
                 'redaccion' => $resRed,
@@ -441,11 +639,13 @@ function gemini_analyze_sheet($imageBytes, $mimeType = 'image/jpeg') {
         }
     }
 
-    return $resultadoFull;
+    // 2. Respaldo: Análisis directo de imagen completa si los recortes fallaron
+    bot_log("Iniciando respaldo de imagen completa...");
+    return gemini_analyze_sheet_full($imageBytes, $mimeType);
 }
 
 /**
- * Analiza la hoja directamente en imagen completa (125 reactivos PAA con Grid Numerico 46 a 55)
+ * 13. Respaldo en imagen completa (125 reactivos PAA)
  */
 function gemini_analyze_sheet_full($imageBytes, $mimeType = 'image/jpeg') {
     $prompt = <<<EOT
@@ -453,22 +653,11 @@ Eres un calificador optico OMR de maxima precision para hojas de respuestas de e
 Examina la imagen completa de la hoja de respuestas.
 
 Estructura oficial del examen (125 preguntas en total):
-1. PARTE 1 / LECTURA (Preguntas 1 a 45):
-   - 5 columnas verticales de 9 preguntas cada una (1-9, 10-18, 19-27, 28-36, 37-45).
-   - Opciones: A, B, C, D (4 burbujas por fila).
-
-2. PARTE 2 / REDACCION (Preguntas 1 a 25):
-   - 5 columnas verticales de 5 preguntas cada una (1-5, 6-10, 11-15, 16-20, 21-25).
-   - Opciones: A, B, C, D (4 burbujas por fila).
-
+1. PARTE 1 / LECTURA (Preguntas 1 a 45): Opciones A, B, C, D.
+2. PARTE 2 / REDACCION (Preguntas 1 a 25): Opciones A, B, C, D.
 3. PARTE 3 / MATEMATICAS (55 preguntas en total: 1 a 55):
-   - Preguntas 1 a 45 (Seleccion multiple):
-     * 3 columnas verticales de 15 preguntas cada una (1-15, 16-30, 31-45).
-     * Opciones: A, B, C, D.
-   - Preguntas 46 a 55 (Cuadriculas de Grid Numerico):
-     * Son 10 ejercicios abiertos donde los alumnos rellenan numeros del 0 al 9, puntos decimales (.) o fracciones (/).
-     * Ejemplos de respuestas: "1/2", "3.5", "18", "4/5", "25", "0.75", etc.
-     * Si rellenaron letras en lugar de numeros, anota la letra; si rellenaron numeros, anota el numero o fraccion resultante.
+   - Preguntas 1 a 45: Opciones A, B, C, D.
+   - Preguntas 46 a 55: Cuadriculas numericas abiertas (ej. "15", "1/2", "22", "0.33", "9", "2000", "1429", "12", "0.5", "0").
 
 REGLAS ESTRICTAS DE DETECCION:
 1. Identifica para cada pregunta la burbuja que tenga el relleno intencional con lapiz o tinta mas oscuro y definitivo.
@@ -479,13 +668,7 @@ Devuelve UNICAMENTE un objeto JSON valido con este formato exacto:
 {
   "lectura": { "1": "A", "2": "B" },
   "redaccion": { "1": "C", "2": "D" },
-  "matematicas": {
-    "1": "A",
-    "45": "B",
-    "46": "18",
-    "47": "3.5",
-    "55": "1/2"
-  }
+  "matematicas": { "1": "A", "45": "B", "46": "15", "47": "1/2", "55": "0" }
 }
 EOT;
 
@@ -515,7 +698,6 @@ EOT;
             'ingles' => []
         ];
 
-        // 1. Lectura: 1 a 45
         if (isset($data['lectura']) && is_array($data['lectura'])) {
             foreach ($data['lectura'] as $num => $val) {
                 $valStr = strtoupper(trim((string)$val));
@@ -525,7 +707,6 @@ EOT;
             }
         }
 
-        // 2. Redaccion: 1 a 25
         if (isset($data['redaccion']) && is_array($data['redaccion'])) {
             foreach ($data['redaccion'] as $num => $val) {
                 $valStr = strtoupper(trim((string)$val));
@@ -535,7 +716,6 @@ EOT;
             }
         }
 
-        // 3. Matematicas: 1 a 45 (ABCD) y 46 a 55 (Grid Numerico)
         if (isset($data['matematicas']) && is_array($data['matematicas'])) {
             foreach ($data['matematicas'] as $num => $val) {
                 $numInt = intval($num);
@@ -553,8 +733,6 @@ EOT;
             }
         }
 
-        $totalResp = count($limpio['lectura']) + count($limpio['redaccion']) + count($limpio['matematicas']);
-        bot_log("Gemini ({$res['modelo']}) analizo imagen completa: {$totalResp} reactivos detectados (incluyendo Grid).");
         return $limpio;
     }
 
@@ -562,159 +740,25 @@ EOT;
 }
 
 /**
- * Prepara los recortes($imageBytes) {
-    if (!function_exists('imagecreatefromstring')) {
-        return false;
-    }
-
-    $img = @imagecreatefromstring($imageBytes);
-    if (!$img) return false;
-
-    // 1. Corregir orientación EXIF (típica en fotos de smartphones)
-    if (function_exists('exif_read_data') && function_exists('imagerotate')) {
-        $stream = fopen('php://memory', 'r+');
-        if ($stream) {
-            fwrite($stream, $imageBytes);
-            rewind($stream);
-            $exif = @exif_read_data($stream);
-            fclose($stream);
-
-            if (!empty($exif['Orientation'])) {
-                switch ($exif['Orientation']) {
-                    case 3: $img = imagerotate($img, 180, 0); break;
-                    case 6: $img = imagerotate($img, -90, 0); break;
-                    case 8: $img = imagerotate($img, 90, 0); break;
-                }
-            }
-        }
-    }
-
-    $w = imagesx($img);
-    $h = imagesy($img);
-
-    // 2. Si la imagen quedó en horizontal (w > h), rotar 90° a vertical (la hoja de examen es vertical)
-    if ($w > $h && function_exists('imagerotate')) {
-        $img = imagerotate($img, -90, 0);
-        $w = imagesx($img);
-        $h = imagesy($img);
-    }
-
-    // 3. Detección dinámica de los encabezados magenta ("Parte 1 Lectura", "Parte 2 Redacción", "Parte 3 Matemáticas")
-    $sampleX = [(int)($w * 0.45), (int)($w * 0.55), (int)($w * 0.65), (int)($w * 0.75)];
-    $magentaCounts = array_fill(0, $h, 0);
-
-    for ($y = 0; $y < $h; $y += 2) {
-        foreach ($sampleX as $x) {
-            $rgb = imagecolorat($img, $x, $y);
-            $r = ($rgb >> 16) & 0xFF;
-            $g = ($rgb >> 8) & 0xFF;
-            // Magenta adaptativo de examen Lumière (funciona con diferente iluminación)
-            if ($r >= 120 && $g <= 110 && ($r - $g) >= 35) {
-                $magentaCounts[$y]++;
-            }
-        }
-    }
-
-    $bands = [];
-    $inBand = false;
-    $start = 0;
-    $minThick = max(3, (int)($h * 0.003));
-    $maxThick = max(30, (int)($h * 0.035));
-
-    for ($y = 0; $y < $h; $y += 2) {
-        if ($magentaCounts[$y] >= 2) {
-            if (!$inBand) {
-                $inBand = true;
-                $start = $y;
-            }
-        } else {
-            if ($inBand) {
-                $inBand = false;
-                $end = $y - 2;
-                $thickness = $end - $start + 1;
-                // Grosor adaptativo según la resolución real de la fotografía
-                if ($thickness >= $minThick && $thickness <= $maxThick) {
-                    $bands[] = ['start' => $start, 'end' => $end, 'mid' => (int)(($start + $end) / 2)];
-                }
-            }
-        }
-    }
-
-    $cropP1 = false; $cropP2 = false; $cropP3 = false;
-
-    if (count($bands) >= 3) {
-        // Encontrar inicio y fin horizontal del encabezado de Lectura dentro del tercio derecho
-        $midY = $bands[0]['mid'];
-        $minX = (int)($w * 0.30);
-        $maxX = (int)($w * 0.95);
-        $foundX = [];
-
-        for ($x = $minX; $x < $maxX; $x++) {
-            $rgb = imagecolorat($img, $x, $midY);
-            $r = ($rgb >> 16) & 0xFF;
-            $g = ($rgb >> 8) & 0xFF;
-            if ($r >= 120 && $g <= 110 && ($r - $g) >= 35) {
-                $foundX[] = $x;
-            }
-        }
-
-        $xSec = !empty($foundX) ? max(0, min($foundX) - 15) : (int)($w * 0.38);
-        $wSec = !empty($foundX) ? min($w - $xSec, (max($foundX) - min($foundX)) + 30) : (int)($w * 0.52);
-
-        $yLec = max(0, $bands[0]['start'] - 6);
-        $hLec = min($h - $yLec, ($bands[1]['start'] - $yLec) + 6);
-
-        $yRed = max(0, $bands[1]['start'] - 6);
-        $hRed = min($h - $yRed, ($bands[2]['start'] - $yRed) + 6);
-
-        $yMat = max(0, $bands[2]['start'] - 6);
-        $hMat = isset($bands[3]) ? (($bands[3]['start'] - $yMat) + 12) : (int)($hRed * 4.2);
-        $hMat = min($h - $yMat, $hMat);
-
-        $cropP1 = @imagecrop($img, ['x' => $xSec, 'y' => $yLec, 'width' => $wSec, 'height' => $hLec]);
-        $cropP2 = @imagecrop($img, ['x' => $xSec, 'y' => $yRed, 'width' => $wSec, 'height' => $hRed]);
-        $cropP3 = @imagecrop($img, ['x' => $xSec, 'y' => $yMat, 'width' => $wSec, 'height' => $hMat]);
-    }
-
-    // Si la detección de color no fue suficiente, usar proporciones adaptadas verticales
-    if (!$cropP1 || !$cropP2 || !$cropP3) {
-        $x = max(0, (int)($w * 0.28));
-        $wSec = min($w - $x, (int)($w * 0.67));
-        $cropP1 = @imagecrop($img, ['x' => $x, 'y' => (int)($h * 0.09), 'width' => $wSec, 'height' => (int)($h * 0.11)]);
-        $cropP2 = @imagecrop($img, ['x' => $x, 'y' => (int)($h * 0.18), 'width' => $wSec, 'height' => (int)($h * 0.08)]);
-        $cropP3 = @imagecrop($img, ['x' => $x, 'y' => (int)($h * 0.25), 'width' => $wSec, 'height' => (int)($h * 0.32)]);
-    }
-
-
-    if ($cropP1 && $cropP2 && $cropP3) {
-        ob_start(); imagejpeg($cropP1, null, 95); $b1 = ob_get_clean();
-        ob_start(); imagejpeg($cropP2, null, 95); $b2 = ob_get_clean();
-        ob_start(); imagejpeg($cropP3, null, 95); $b3 = ob_get_clean();
-        imagedestroy($cropP1); imagedestroy($cropP2); imagedestroy($cropP3);
-        imagedestroy($img);
-        return [$b1, $b2, $b3];
-    }
-
-    imagedestroy($img);
-    return false;
-}
-
-/**
- * Extrae el nombre y datos del alumno desde el recuadro superior izquierdo de la hoja
+ * 14. Extrae el nombre y datos del alumno desde el recuadro superior izquierdo de la hoja
  * 
  * @param string $imageBytes Contenido binario de la imagen
  * @return array ['nombre' => string, 'carrera' => string]
  */
 function gemini_extraer_datos_alumno($imageBytes) {
+    // Si podemos recortar la esquina superior izquierda, se procesa mucho más rápido y nítido
+    $recortes = gemini_preparar_recortes_completos($imageBytes);
+    $bytesNombre = ($recortes && !empty($recortes['datos_alumno'])) ? $recortes['datos_alumno'] : $imageBytes;
+
     $prompt = <<<EOT
-En esta fotografía de la hoja de examen, examina cuidadosamente el recuadro superior izquierdo (debajo del logotipo Lumière):
-1. Identifica el campo "Nombre:" o "Nombre del Alumno:" y extrae con máxima precisión el texto escrito a mano o impreso.
+En esta sección de la hoja de examen (debajo del logotipo Lumière):
+1. Identifica el campo "Nombre:" o "Nombre del Alumno:" y extrae el texto escrito a mano o impreso.
 2. Si está vacío o no hay texto escrito, devuelve cadena vacía "".
 3. Si existe el campo "Carrera:", extráelo también.
 
 Devuelve ÚNICAMENTE un objeto JSON:
 {
-  "nombre": "Nombre y apellidos detectados",
+  "nombre": "Nombre detectado",
   "carrera": "Carrera detectada"
 }
 EOT;
@@ -723,7 +767,7 @@ EOT;
         'contents' => [[
             'parts' => [
                 ['text' => $prompt],
-                ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => base64_encode($imageBytes)]]
+                ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => base64_encode($bytesNombre)]]
             ]
         ]],
         'generationConfig' => [
@@ -742,6 +786,3 @@ EOT;
 
     return ['nombre' => '', 'carrera' => ''];
 }
-
-
-

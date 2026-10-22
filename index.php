@@ -848,7 +848,8 @@ function actualizarConteoModificaciones() {
     ['lectura', 'redaccion', 'matematicas'].forEach(sec => {
         const cur = respuestasDetectadas[sec] || {};
         const orig = respuestasOriginales[sec] || {};
-        for (let i = 1; i <= 45; i++) {
+        const maxTotal = (sec === 'redaccion') ? 25 : (sec === 'matematicas' ? 55 : 45);
+        for (let i = 1; i <= maxTotal; i++) {
             const num = String(i);
             const cVal = cur[num] || '';
             const oVal = orig[num] || '';

@@ -1331,7 +1331,7 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
             const secInfo = [
                 { id: 'lectura', nombre: 'Lectura (45 Qs)', total: 45 },
                 { id: 'redaccion', nombre: 'Redacción (25 Qs)', total: 25 },
-                { id: 'matematicas', nombre: 'Matemáticas (45 Qs)', total: 45 }
+                { id: 'matematicas', nombre: 'Matemáticas (55 Qs)', total: 55 }
             ];
 
             secInfo.forEach(s => {
@@ -1345,9 +1345,29 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                     const rBase = baseSec[String(i)] || baseSec[i] || '';
                     const wasMod = !!modSec[String(i)] || !!modSec[i];
 
+                    const sonEquivalentes = (a, b) => {
+                        if (!a && !b) return true;
+                        if (!a || !b) return false;
+                        const sa = String(a).trim().toUpperCase();
+                        const sb = String(b).trim().toUpperCase();
+                        if (sa === sb) return true;
+                        const parseNum = s => {
+                            s = s.replace(',', '.');
+                            if (s.includes('/')) {
+                                const p = s.split('/');
+                                return (p.length === 2 && !isNaN(p[0]) && !isNaN(p[1]) && Number(p[1]) !== 0) ? (Number(p[0]) / Number(p[1])) : null;
+                            }
+                            return !isNaN(s) ? Number(s) : null;
+                        };
+                        const na = parseNum(sa);
+                        const nb = parseNum(sb);
+                        if (na !== null && nb !== null) return Math.abs(na - nb) < 0.0001;
+                        return false;
+                    };
+
                     let pillClass = 'omitted';
                     if (rAl) {
-                        pillClass = (rAl === rBase) ? 'correct' : 'wrong';
+                        pillClass = sonEquivalentes(rAl, rBase) ? 'correct' : 'wrong';
                     }
                     if (wasMod) pillClass += ' modified';
 
@@ -1433,28 +1453,52 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
             if (!container) return;
 
             const sec = seccionClaveActual;
-            const total = (sec === 'redaccion') ? 25 : 45;
+            const total = (sec === 'redaccion') ? 25 : (sec === 'matematicas' ? 55 : 45);
             const respuestas = hojaBaseTrabajo[sec] || {};
 
             let items = [];
             for (let i = 1; i <= total; i++) {
                 const actual = respuestas[String(i)] || respuestas[i] || '';
-                const opciones = ['A', 'B', 'C', 'D'];
 
-                let btns = opciones.map(letra => {
-                    const isActive = (actual === letra) ? 'active' : '';
-                    return `<button type="button" class="q-btn ${isActive}" onclick="seleccionarClave('${sec}', ${i}, '${letra}')">${letra}</button>`;
-                }).join('');
+                if (sec === 'matematicas' && i >= 46) {
+                    items.push(`
+                        <div class="q-item" style="border: 1px solid rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.06); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; align-items: stretch; gap: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span class="q-num" style="color: #f59e0b; font-weight: 800; font-size: 12px;">#${i} (Grid Numérico)</span>
+                            </div>
+                            <input type="text" value="${escapeHtml(actual)}"
+                                placeholder="ej. 15, 1/2, 22, 0.33"
+                                style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 13px; text-transform: uppercase; font-weight: 700; text-align: center; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px;"
+                                onchange="modificarClaveGrid('${sec}', ${i}, this.value)">
+                        </div>
+                    `);
+                } else {
+                    const opciones = ['A', 'B', 'C', 'D'];
+                    let btns = opciones.map(letra => {
+                        const isActive = (actual === letra) ? 'active' : '';
+                        return `<button type="button" class="q-btn ${isActive}" onclick="seleccionarClave('${sec}', ${i}, '${letra}')">${letra}</button>`;
+                    }).join('');
 
-                items.push(`
-                    <div class="q-item">
-                        <span class="q-num">#${i}</span>
-                        <div class="q-bubbles">${btns}</div>
-                    </div>
-                `);
+                    items.push(`
+                        <div class="q-item">
+                            <span class="q-num">#${i}</span>
+                            <div class="q-bubbles">${btns}</div>
+                        </div>
+                    `);
+                }
             }
 
             container.innerHTML = items.join('');
+        }
+
+        function modificarClaveGrid(sec, num, val) {
+            if (!hojaBaseTrabajo[sec]) hojaBaseTrabajo[sec] = {};
+            const clean = val.trim().toUpperCase();
+            if (clean === '') {
+                delete hojaBaseTrabajo[sec][String(num)];
+            } else {
+                hojaBaseTrabajo[sec][String(num)] = clean;
+            }
         }
 
         function seleccionarClave(sec, num, letra) {

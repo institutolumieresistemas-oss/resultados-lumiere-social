@@ -843,6 +843,9 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                 <span>🎯 Cargar Hoja Base Oficial (Claves PAA)</span>
                 <span class="tab-badge" id="tabBadgePreguntas">125 Qs</span>
             </button>
+            <a href="mesas.php" target="_blank" class="tab-btn" style="text-decoration: none; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;">
+                <span>🖥️ Mesas de Calificación (5 Estaciones) ↗</span>
+            </a>
         </div>
 
         <!-- PESTAÑA 1: LISTA DE ALUMNOS -->
@@ -863,6 +866,9 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                     </a>
                     <a href="captura_base.php?token=<?php echo urlencode(ADMIN_PASSWORD); ?>" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 6px 12px; margin-left: 6px; font-size: 13px; background: #0284c7; color: #fff;">
                         <span>🎯 Cargar Hoja Base ↗</span>
+                    </a>
+                    <a href="mesas.php" target="_blank" class="btn btn-sm" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 6px 12px; margin-left: 6px; font-size: 13px; background: #10b981; color: #fff;">
+                        <span>🖥️ Mesas (5 Estaciones) ↗</span>
                     </a>
                 </div>
             </div>

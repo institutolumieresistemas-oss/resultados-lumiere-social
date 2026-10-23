@@ -548,8 +548,10 @@ if (strpos($hostActual, 'resultados.') !== false) {
             </a>
         </div>
 
-        <div style="margin-top: 12px; text-align: center; font-size: 12px; color: var(--muted); padding-top: 10px; border-top: 1px solid var(--border);">
-            ¿Eres profesor? <a href="captura_base.php" target="_blank" style="color: #fbbf24; text-decoration: none; font-weight: 700;">🎯 Cargar / Dictar Hoja Base Oficial ↗</a>
+        <div style="margin-top: 12px; text-align: center; font-size: 12px; color: var(--muted); padding-top: 10px; border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+            <span>¿Eres profesor? <a href="captura_base.php" target="_blank" style="color: #fbbf24; text-decoration: none; font-weight: 700;">🎯 Cargar Hoja Base ↗</a></span>
+            <span>&bull;</span>
+            <a href="mesas.php" target="_blank" style="color: #34d399; text-decoration: none; font-weight: 700;">🖥️ Mesas de Calificación (5 Estaciones en Vivo) ↗</a>
         </div>
     </div>
 

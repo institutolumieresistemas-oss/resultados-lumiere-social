@@ -51,11 +51,15 @@ define('CLAVES_FILE', $sharedDir . '/claves.json');
 define('TABULADOR_FILE', $sharedDir . '/tabulador.json');
 define('ALUMNOS_FILE', $sharedDir . '/alumnos.json');
 define('UPLOADS_DIR', $sharedDir . '/uploads');
+define('MESAS_DIR', $sharedDir . '/mesas');
 define('LOG_FILE', $sharedDir . '/calificador.log');
 
-// Asegurar directorio de uploads
+// Asegurar directorios de uploads y mesas
 if (!is_dir(UPLOADS_DIR)) {
     @mkdir(UPLOADS_DIR, 0777, true);
+}
+if (!is_dir(MESAS_DIR)) {
+    @mkdir(MESAS_DIR, 0777, true);
 }
 
 /**

@@ -628,8 +628,10 @@ $origen = trim($_GET['origen'] ?? '');
         </div>
         <h1>✍️ Captura Manual y Dictado</h1>
         <p>Carga de respuestas de examen de alumno sin escaneo de imagen. Compatible con dictado por voz y captura táctil.</p>
-        <div style="margin-top: 8px; font-size: 12px; color: var(--muted);">
-            ¿Deseas configurar las respuestas correctas oficiales? <a href="captura_base.php" target="_blank" style="color: #fbbf24; text-decoration: none; font-weight: 700;">🎯 Ir a Cargar Hoja Base ↗</a>
+        <div style="margin-top: 8px; font-size: 12px; color: var(--muted); display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <span>¿Deseas configurar las respuestas correctas? <a href="captura_base.php" target="_blank" style="color: #fbbf24; text-decoration: none; font-weight: 700;">🎯 Ir a Cargar Hoja Base ↗</a></span>
+            <span>&bull;</span>
+            <a href="mesas.php" target="_blank" style="color: #34d399; text-decoration: none; font-weight: 700;">🖥️ Mesas de Calificación (5 Estaciones en Vivo) ↗</a>
         </div>
     </div>
 

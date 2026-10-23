@@ -1050,6 +1050,23 @@ EOT;
     $totalDetectadas = count($resLec) + count($resRed) + count($resMat);
     bot_log("⚡ Pipeline Paralelo OMR completado en {$duracion}s: {$totalDetectadas} respuestas detectadas (Lec: " . count($resLec) . ", Red: " . count($resRed) . ", Mat: " . count($resMat) . "). Nombre: '{$nombreDetectado}'");
 
+    // Si los recortes no capturaron suficientes respuestas (foto desalineada o con márgenes amplios), activar respaldo de hoja completa
+    if ($totalDetectadas < 25) {
+        bot_log("Aviso: Pocas respuestas detectadas por recorte ({$totalDetectadas}). Activando respaldo de imagen completa...");
+        $respFull = gemini_analyze_sheet_full($imageBytes, $mimeType);
+        $totFull = count($respFull['lectura'] ?? []) + count($respFull['redaccion'] ?? []) + count($respFull['matematicas'] ?? []);
+        if ($totFull > $totalDetectadas) {
+            bot_log("Respaldo de hoja completa exitoso con {$totFull} respuestas detectadas.");
+            return [
+                'exito' => true,
+                'nombre' => $nombreDetectado,
+                'carrera' => $carreraDetectada,
+                'duracion' => round(microtime(true) - $t0, 2),
+                'respuestas' => $respFull
+            ];
+        }
+    }
+
     return [
         'exito' => true,
         'nombre' => $nombreDetectado,

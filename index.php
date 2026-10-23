@@ -285,6 +285,18 @@ if (strpos($hostActual, 'resultados.') !== false) {
             border-color: var(--warning);
             background: rgba(245, 158, 11, 0.08);
         }
+        .q-card.pregunta-enfocada {
+            border: 2px solid var(--accent) !important;
+            background: rgba(56, 189, 248, 0.18) !important;
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.5) !important;
+            transform: scale(1.02);
+            position: relative;
+            z-index: 2;
+        }
+        .q-card.pregunta-enfocada .q-header {
+            color: var(--accent) !important;
+            font-weight: 800 !important;
+        }
         .q-header {
             display: flex;
             justify-content: space-between;
@@ -1094,6 +1106,38 @@ function modificarRespuestaGrid(sec, num, val) {
 let seccionActiva = 'lectura';
 let reconocimientoVoz = null;
 let dictandoActivo = false;
+let preguntaRevisionActual = 1;
+
+function enfocarRevisionPregunta(num, hablar = false) {
+    let min = 1, max = 45;
+    if (seccionActiva === 'redaccion') max = 25;
+    else if (seccionActiva === 'matematicas2') { min = 46; max = 55; }
+
+    if (num < min) num = min;
+    if (num > max) num = max;
+    preguntaRevisionActual = num;
+
+    const elemAct = document.getElementById('voz-reactivo-actual');
+    if (elemAct) elemAct.textContent = num;
+
+    document.querySelectorAll('.q-card.pregunta-enfocada').forEach(c => c.classList.remove('pregunta-enfocada'));
+    const cardId = (seccionActiva === 'matematicas2') ? `q-matematicas2-${num}` : `q-${seccionActiva}-${num}`;
+    const card = document.getElementById(cardId);
+    if (card) {
+        card.classList.add('pregunta-enfocada');
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    if (hablar && dictandoActivo && window.speechSynthesis) {
+        try {
+            window.speechSynthesis.cancel();
+            const ut = new SpeechSynthesisUtterance("Pregunta " + num);
+            ut.lang = 'es-MX';
+            ut.rate = 1.35;
+            window.speechSynthesis.speak(ut);
+        } catch(e) {}
+    }
+}
 
 function cambiarSeccionRevision(sec) {
     seccionActiva = sec;
@@ -1126,9 +1170,8 @@ function cambiarSeccionRevision(sec) {
     if (elemSec) elemSec.textContent = nombres[sec] || sec;
     if (elemTot) elemTot.textContent = totales[sec] || 45;
 
-    // Resetear contador visual de reactivo dictado para la nueva sección
-    const elemAct = document.getElementById('voz-reactivo-actual');
-    if (elemAct) elemAct.textContent = (sec === 'matematicas2') ? '46' : '1';
+    preguntaRevisionActual = (sec === 'matematicas2') ? 46 : 1;
+    enfocarRevisionPregunta(preguntaRevisionActual, dictandoActivo);
 }
 
 function toggleDictadoVoz() {
@@ -1172,55 +1215,79 @@ function iniciarDictadoVoz() {
         if (panelEstado) panelEstado.style.display = 'block';
         if (transVivo) transVivo.textContent = '🎤 Escuchando micrófono...';
 
+        enfocarRevisionPregunta(preguntaRevisionActual, true);
+
         reconocimientoVoz.onresult = function(event) {
-            let textoCompleto = '';
-            for (let i = 0; i < event.results.length; ++i) {
-                textoCompleto += event.results[i][0].transcript + ' ';
+            let finalFrase = '';
+            let interinFrase = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                const item = event.results[i];
+                if (item.isFinal) finalFrase += item[0].transcript + ' ';
+                else interinFrase += item[0].transcript + ' ';
             }
 
-            const letras = parsearDictadoALetras(textoCompleto);
-            if (letras.length === 0) return;
+            if (interinFrase && transVivo) {
+                transVivo.textContent = '🎤 ' + interinFrase.trim();
+            }
 
-            if (seccionActiva === 'matematicas2') {
-                letras.forEach((val, idx) => {
-                    const num = 46 + idx;
-                    if (num <= 55) {
-                        modificarRespuestaGrid('matematicas2', String(num), val);
-                        const inp = document.querySelector(`#q-matematicas2-${num} input`);
-                        if (inp) inp.value = val;
+            if (finalFrase.trim() !== '') {
+                const texto = finalFrase.trim();
+                if (transVivo) transVivo.textContent = '✅ ' + texto;
+
+                let min = 1, max = 45;
+                if (seccionActiva === 'redaccion') max = 25;
+                else if (seccionActiva === 'matematicas2') { min = 46; max = 55; }
+
+                let t = texto.toLowerCase();
+                if (/\b(anterior|atras|atrás)\b/.test(t)) {
+                    enfocarRevisionPregunta(preguntaRevisionActual - 1, true);
+                    return;
+                }
+                if (/\b(siguiente|omitir|paso)\b/.test(t)) {
+                    enfocarRevisionPregunta(preguntaRevisionActual + 1, true);
+                    return;
+                }
+
+                // Par número + letra (ej. '1 a', '2 b')
+                const parMatch = t.match(/(\d{1,2})\s*([abcdABCD])\b/);
+                if (parMatch) {
+                    const qNum = parseInt(parMatch[1], 10);
+                    const opt = parMatch[2].toUpperCase();
+                    if (qNum >= min && qNum <= max && seccionActiva !== 'matematicas2') {
+                        seleccionarOpcion(seccionActiva, String(qNum), opt);
+                        enfocarRevisionPregunta(Math.min(qNum + 1, max), true);
+                        return;
                     }
-                });
+                }
 
-                const ultimasLetras = letras.slice(-5).join(' ');
-                if (transVivo) transVivo.textContent = ultimasLetras || 'Escuchando...';
-
-                const reactivoSiguiente = Math.min(46 + letras.length, 55);
-                const elemAct = document.getElementById('voz-reactivo-actual');
-                if (elemAct) elemAct.textContent = reactivoSiguiente;
-
-                const targetNum = Math.min(46 + (letras.length ? (letras.length - 1) : 0), 55);
-                const cardAct = document.getElementById(`q-matematicas2-${targetNum}`);
-                if (cardAct) cardAct.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            } else {
-                const specs = { lectura: 45, redaccion: 25, matematicas: 45 };
-                const totalSec = specs[seccionActiva] || 45;
-
-                letras.forEach((letra, idx) => {
-                    const num = idx + 1;
-                    if (num <= totalSec) {
-                        seleccionarOpcion(seccionActiva, String(num), letra);
+                // Matemáticas 2
+                if (seccionActiva === 'matematicas2') {
+                    const gridMatch = t.match(/(\d{1,2})\s+([0-9\.\/]+)/) || t.match(/^([0-9\.\/]+)$/);
+                    if (gridMatch) {
+                        const val = gridMatch[2] || gridMatch[1];
+                        const qNum = gridMatch[2] ? parseInt(gridMatch[1], 10) : preguntaRevisionActual;
+                        if (qNum >= 46 && qNum <= 55) {
+                            modificarRespuestaGrid('matematicas2', String(qNum), val);
+                            const inp = document.querySelector(`#q-matematicas2-${qNum} input`);
+                            if (inp) inp.value = val;
+                            enfocarRevisionPregunta(Math.min(qNum + 1, 55), true);
+                            return;
+                        }
                     }
-                });
+                }
 
-                const ultimasLetras = letras.slice(-10).join(' ');
-                if (transVivo) transVivo.textContent = ultimasLetras || 'Escuchando...';
+                // Letra suelta
+                const letraMatch = t.match(/\b(a|ah|b|be|bueno|ve|c|ce|casa|se|d|de|dedo)\b/);
+                if (letraMatch && seccionActiva !== 'matematicas2') {
+                    let letra = 'A';
+                    const w = letraMatch[1];
+                    if (w.startsWith('b') || w.startsWith('v')) letra = 'B';
+                    else if (w.startsWith('c') || w.startsWith('s')) letra = 'C';
+                    else if (w.startsWith('d')) letra = 'D';
 
-                const reactivoSiguiente = Math.min(letras.length + 1, totalSec);
-                const elemAct = document.getElementById('voz-reactivo-actual');
-                if (elemAct) elemAct.textContent = reactivoSiguiente;
-
-                const cardAct = document.getElementById(`q-${seccionActiva}-${letras.length || 1}`);
-                if (cardAct) cardAct.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    seleccionarOpcion(seccionActiva, String(preguntaRevisionActual), letra);
+                    enfocarRevisionPregunta(Math.min(preguntaRevisionActual + 1, max), true);
+                }
             }
         };
 

@@ -567,6 +567,19 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
             display: flex;
             align-items: center;
             justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+        .q-item.pregunta-enfocada {
+            border: 2px solid #38bdf8 !important;
+            background: rgba(56, 189, 248, 0.16) !important;
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.45) !important;
+            transform: scale(1.02);
+            position: relative;
+            z-index: 2;
+        }
+        .q-item.pregunta-enfocada .q-num {
+            color: #38bdf8 !important;
+            font-weight: 900 !important;
         }
         .q-num {
             font-weight: 700;
@@ -940,17 +953,18 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
 
                 <!-- Barra de Dictado por Voz integrada en el Editor -->
                 <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <button type="button" class="btn btn-secondary btn-sm" id="btnVozPanel" onclick="toggleDictadoVozPanel()" style="background: #0284c7; color: #fff; font-weight: 700; border: none; padding: 8px 14px; cursor: pointer;">
                             <span id="iconoMicPanel">🎙️</span>
-                            <span id="txtVozPanel">Iniciar Dictado por Voz</span>
+                            <span id="txtVozPanel">Iniciar Dictado Guiado</span>
                         </button>
                         <span id="panelVozEstado" style="display: none; font-size: 13px; color: #38bdf8; font-weight: 600;">
-                            <span class="pulse-dot"></span> Escuchando: <b id="transcripcionPanel" style="color: #fff; font-family: monospace; font-size: 14px; letter-spacing: 1px;">...</b>
+                            <span class="pulse-dot"></span> Preguntando: <b id="lblPreguntaActualPanel" style="color: #fbbf24; font-size: 14px;">#1</b> | Escuchando: <b id="transcripcionPanel" style="color: #fff; font-family: monospace; font-size: 14px; letter-spacing: 1px;">...</b>
                         </span>
                     </div>
-                    <div style="font-size: 12px; color: var(--muted);">
-                        Módulo activo: <b id="lblSecClaveNombre" style="color: #38bdf8;">Lectura (1 - 45)</b>
+                    <div style="font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px;">
+                        <span>Módulo: <b id="lblSecClaveNombre" style="color: #38bdf8;">Lectura (1 - 45)</b></span>
+                        <a href="captura_base.php?token=<?php echo urlencode(ADMIN_PASSWORD); ?>" target="_blank" style="color: #fbbf24; font-weight: 700; text-decoration: none; font-size: 12px;">Abrir Pestaña Completa ↗</a>
                     </div>
                 </div>
 
@@ -1487,7 +1501,41 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
             const lbl = document.getElementById('lblSecClaveNombre');
             if (lbl) lbl.textContent = nombres[sec] || sec;
 
+            preguntaClaveActualPanel = (sec === 'matematicas2') ? 46 : 1;
             renderEditorClaves();
+            enfocarClavePanel(preguntaClaveActualPanel, dictandoPanel);
+        }
+
+        let preguntaClaveActualPanel = 1;
+
+        function enfocarClavePanel(num, hablar = false) {
+            let min = 1, max = 45;
+            if (seccionClaveActual === 'redaccion') { max = 25; }
+            else if (seccionClaveActual === 'matematicas2') { min = 46; max = 55; }
+
+            if (num < min) num = min;
+            if (num > max) num = max;
+            preguntaClaveActualPanel = num;
+
+            const lbl = document.getElementById('lblPreguntaActualPanel');
+            if (lbl) lbl.textContent = `#${num}`;
+
+            document.querySelectorAll('.q-item.pregunta-enfocada').forEach(el => el.classList.remove('pregunta-enfocada'));
+            const card = document.getElementById(`qItemClave_${num}`);
+            if (card) {
+                card.classList.add('pregunta-enfocada');
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            if (hablar && dictandoPanel && window.speechSynthesis) {
+                try {
+                    window.speechSynthesis.cancel();
+                    const ut = new SpeechSynthesisUtterance("Pregunta " + num);
+                    ut.lang = 'es-MX';
+                    ut.rate = 1.35;
+                    window.speechSynthesis.speak(ut);
+                } catch(e) {}
+            }
         }
 
         function renderEditorClaves() {
@@ -1507,10 +1555,11 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
             let items = [];
             for (let i = inicio; i <= fin; i++) {
                 const actual = respuestas[String(i)] || respuestas[i] || '';
+                const isFocused = (i === preguntaClaveActualPanel) ? ' pregunta-enfocada' : '';
 
                 if (esGrid) {
                     items.push(`
-                        <div class="q-item" style="border: 1px solid rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.08); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; align-items: stretch; gap: 4px;">
+                        <div class="q-item${isFocused}" id="qItemClave_${i}" onclick="enfocarClavePanel(${i})" style="border: 1px solid rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.08); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; align-items: stretch; gap: 4px; cursor: pointer;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span class="q-num" style="color: #f59e0b; font-weight: 800; font-size: 13px;">#${i}</span>
                                 <span style="color: #fbbf24; font-size: 11px; font-weight: 600;">Respuesta Abierta</span>
@@ -1518,6 +1567,7 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                             <input type="text" id="inputClaveMat2_${i}" value="${escapeHtml(actual)}"
                                 placeholder="ej. 15, 1/2, 22"
                                 style="width: 100%; box-sizing: border-box; padding: 7px 8px; font-size: 14px; text-transform: uppercase; font-weight: 800; text-align: center; background: #0f172a; border: 1px solid rgba(245, 158, 11, 0.5); color: #fff; border-radius: 6px;"
+                                onfocus="enfocarClavePanel(${i})"
                                 oninput="modificarClaveGrid('${secDataKey}', ${i}, this.value)">
                         </div>
                     `);
@@ -1525,11 +1575,11 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                     const opciones = ['A', 'B', 'C', 'D'];
                     let btns = opciones.map(letra => {
                         const isActive = (actual === letra) ? 'active' : '';
-                        return `<button type="button" class="q-btn ${isActive}" onclick="seleccionarClave('${secDataKey}', ${i}, '${letra}')">${letra}</button>`;
+                        return `<button type="button" class="q-btn ${isActive}" onclick="seleccionarClave('${secDataKey}', ${i}, '${letra}'); enfocarClavePanel(${i});">${letra}</button>`;
                     }).join('');
 
                     items.push(`
-                        <div class="q-item">
+                        <div class="q-item${isFocused}" id="qItemClave_${i}" onclick="enfocarClavePanel(${i})" style="cursor: pointer;">
                             <span class="q-num">#${i}</span>
                             <div class="q-bubbles">${btns}</div>
                         </div>
@@ -1540,7 +1590,7 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
             container.innerHTML = items.join('');
         }
 
-        // Dictado por voz en tiempo real integrado en el panel
+        // Dictado por voz guiado integrado en el panel
         let recVozPanel = null;
         let dictandoPanel = false;
 
@@ -1571,36 +1621,81 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                 document.getElementById('txtVozPanel').textContent = 'Detener Dictado';
                 document.getElementById('panelVozEstado').style.display = 'inline-flex';
 
+                enfocarClavePanel(preguntaClaveActualPanel, true);
+
                 recVozPanel.onresult = function(e) {
-                    let full = '';
-                    for (let i = 0; i < e.results.length; ++i) {
-                        full += e.results[i][0].transcript + ' ';
+                    let finalFrase = '';
+                    let interinFrase = '';
+                    for (let i = e.resultIndex; i < e.results.length; ++i) {
+                        const item = e.results[i];
+                        if (item.isFinal) finalFrase += item[0].transcript + ' ';
+                        else interinFrase += item[0].transcript + ' ';
                     }
-                    const letras = parsearDictadoALetras(full);
-                    if (letras.length === 0) return;
 
-                    const sec = seccionClaveActual;
-                    const secDataKey = (sec === 'matematicas1' || sec === 'matematicas2') ? 'matematicas' : sec;
+                    const transcElem = document.getElementById('transcripcionPanel');
+                    if (interinFrase && transcElem) transcElem.textContent = interinFrase.trim();
 
-                    if (sec === 'matematicas2') {
-                        letras.forEach((val, idx) => {
-                            const num = 46 + idx;
-                            if (num <= 55) {
-                                modificarClaveGrid('matematicas', num, val);
-                                const inp = document.getElementById(`inputClaveMat2_${num}`);
-                                if (inp) inp.value = val;
+                    if (finalFrase.trim() !== '') {
+                        const texto = finalFrase.trim();
+                        if (transcElem) transcElem.textContent = texto;
+
+                        const sec = seccionClaveActual;
+                        const secDataKey = (sec === 'matematicas1' || sec === 'matematicas2') ? 'matematicas' : sec;
+                        let min = 1, max = 45;
+                        if (sec === 'redaccion') max = 25;
+                        else if (sec === 'matematicas2') { min = 46; max = 55; }
+
+                        // Parsear comandos o números
+                        let t = texto.toLowerCase();
+                        if (/\b(anterior|atras|atrás)\b/.test(t)) {
+                            enfocarClavePanel(preguntaClaveActualPanel - 1, true);
+                            return;
+                        }
+                        if (/\b(siguiente|omitir|paso)\b/.test(t)) {
+                            enfocarClavePanel(preguntaClaveActualPanel + 1, true);
+                            return;
+                        }
+
+                        // Pares explícitos: ej '1 a' o '15 b'
+                        const parMatch = t.match(/(\d{1,2})\s*([abcdABCD])\b/);
+                        if (parMatch) {
+                            const qNum = parseInt(parMatch[1], 10);
+                            const opt = parMatch[2].toUpperCase();
+                            if (qNum >= min && qNum <= max) {
+                                seleccionarClaveDirecta(secDataKey, qNum, opt);
+                                enfocarClavePanel(Math.min(qNum + 1, max), true);
+                                return;
                             }
-                        });
-                        document.getElementById('transcripcionPanel').textContent = letras.slice(-5).join(' ');
-                    } else {
-                        const total = (sec === 'redaccion') ? 25 : 45;
-                        letras.forEach((l, idx) => {
-                            const num = idx + 1;
-                            if (num <= total) {
-                                seleccionarClaveDirecta(secDataKey, num, l);
+                        }
+
+                        // Matemáticas 2: ej '46 15' o valor directo '15'
+                        if (sec === 'matematicas2') {
+                            const gridMatch = t.match(/(\d{1,2})\s+([0-9\.\/]+)/) || t.match(/^([0-9\.\/]+)$/);
+                            if (gridMatch) {
+                                const val = gridMatch[2] || gridMatch[1];
+                                const qNum = gridMatch[2] ? parseInt(gridMatch[1], 10) : preguntaClaveActualPanel;
+                                if (qNum >= 46 && qNum <= 55) {
+                                    modificarClaveGrid('matematicas', qNum, val);
+                                    const inp = document.getElementById(`inputClaveMat2_${qNum}`);
+                                    if (inp) inp.value = val;
+                                    enfocarClavePanel(Math.min(qNum + 1, 55), true);
+                                    return;
+                                }
                             }
-                        });
-                        document.getElementById('transcripcionPanel').textContent = letras.slice(-8).join(' ');
+                        }
+
+                        // Letra suelta aplicada a pregunta actual
+                        const letraMatch = t.match(/\b(a|ah|b|be|bueno|ve|c|ce|casa|se|d|de|dedo)\b/);
+                        if (letraMatch) {
+                            let letra = 'A';
+                            const w = letraMatch[1];
+                            if (w.startsWith('b') || w.startsWith('v')) letra = 'B';
+                            else if (w.startsWith('c') || w.startsWith('s')) letra = 'C';
+                            else if (w.startsWith('d')) letra = 'D';
+
+                            seleccionarClaveDirecta(secDataKey, preguntaClaveActualPanel, letra);
+                            enfocarClavePanel(Math.min(preguntaClaveActualPanel + 1, max), true);
+                        }
                     }
                 };
 
@@ -1622,10 +1717,13 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                 try { recVozPanel.stop(); } catch(e) {}
                 recVozPanel = null;
             }
+            if (window.speechSynthesis) {
+                try { window.speechSynthesis.cancel(); } catch(e) {}
+            }
             const btn = document.getElementById('btnVozPanel');
             if (btn) btn.style.background = '#0284c7';
             const txt = document.getElementById('txtVozPanel');
-            if (txt) txt.textContent = 'Iniciar Dictado por Voz';
+            if (txt) txt.textContent = 'Iniciar Dictado Guiado';
             const estado = document.getElementById('panelVozEstado');
             if (estado) estado.style.display = 'none';
         }

@@ -351,6 +351,199 @@ $hojaBaseActual = cargar_hoja_base();
             border-color: #475569;
         }
 
+        /* Prompter Guiado de Dictado Pregunta por Pregunta (Hoja Base) */
+        .guided-prompter-box {
+            background: linear-gradient(135deg, #18181b 0%, #291e0a 100%);
+            border: 2px solid #fbbf24;
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-top: 14px;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+            animation: fadeInPrompter 0.3s ease;
+        }
+        @keyframes fadeInPrompter {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .guided-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .guided-badge {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            color: #fbbf24;
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-tts {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #94a3b8;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.15s;
+        }
+        .btn-tts.active {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            color: #34d399;
+        }
+        .guided-meta {
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            margin-bottom: 4px;
+        }
+        .guided-question-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #ffffff;
+            text-align: center;
+            margin: 6px 0 14px 0;
+            letter-spacing: -0.3px;
+        }
+        .guided-question-title .highlight-q {
+            color: #fbbf24;
+            text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+        .guided-options-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .btn-guided-option {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            background: #0f172a;
+            color: #f8fafc;
+            font-size: 18px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-guided-option:hover {
+            border-color: #fbbf24;
+            color: #fff;
+            transform: translateY(-2px);
+        }
+        .btn-guided-option.active {
+            background: #fbbf24;
+            border-color: #fbbf24;
+            color: #000;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
+            transform: scale(1.08);
+        }
+        .btn-guided-omitir {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px dashed var(--border);
+            background: transparent;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-guided-omitir:hover {
+            border-color: #94a3b8;
+            color: #fff;
+        }
+        .guided-grid-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .guided-grid-input {
+            width: 140px;
+            padding: 10px 12px;
+            background: #0f172a;
+            border: 2px solid #fbbf24;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 800;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .guided-nav-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 10px;
+        }
+        .btn-nav-step {
+            background: #1e293b;
+            border: 1px solid var(--border);
+            color: #cbd5e1;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-nav-step:hover {
+            border-color: #fbbf24;
+            color: #fff;
+        }
+        .guided-feedback-msg {
+            color: #94a3b8;
+            font-size: 12px;
+            text-align: center;
+            flex: 1;
+            min-height: 18px;
+        }
+        .q-card.pregunta-enfocada {
+            border: 2px solid #fbbf24 !important;
+            background: rgba(245, 158, 11, 0.18) !important;
+            box-shadow: 0 0 16px rgba(245, 158, 11, 0.5) !important;
+            transform: scale(1.02);
+            position: relative;
+            z-index: 2;
+        }
+        .q-card.pregunta-enfocada .q-num {
+            color: #fbbf24 !important;
+            font-weight: 900 !important;
+        }
+        @keyframes flash-green {
+            0% { background: rgba(16, 185, 129, 0.45); transform: scale(1.04); }
+            100% { transform: scale(1.0); }
+        }
+        .q-card.guardado-exito {
+            animation: flash-green 0.5s ease-out;
+        }
+
         /* Barra Inferior Fija */
         .bottom-bar {
             position: sticky;
@@ -431,32 +624,88 @@ $hojaBaseActual = cargar_hoja_base();
             </div>
         </div>
 
-        <!-- BARRA DE DICTADO POR VOZ -->
+        <!-- BARRA DE DICTADO POR VOZ GUIADO -->
         <div class="card" style="padding: 14px 16px;">
-            <div style="display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                 <button id="btn-dictado-voz" type="button" class="btn-dictado" onclick="toggleDictadoVoz()">
                     <span id="icono-mic">🎙️</span>
-                    <span id="texto-btn-voz">Iniciar Dictado por Voz</span>
+                    <span id="texto-btn-voz">Iniciar Dictado Guiado de Claves</span>
+                </button>
+                <button id="btn-toggle-prompter" type="button" class="btn btn-outline" style="width: auto; padding: 12px 14px; font-size: 13px;" onclick="togglePrompterManual()" title="Mostrar u ocultar tarjeta de pregunta actual">
+                    🎯 Tarjeta Guía
                 </button>
                 <button type="button" class="btn btn-outline" style="width: auto; padding: 12px 14px; font-size: 13px;" onclick="limpiarSeccionActiva()" title="Limpiar respuestas de esta sección">
                     🧹 Limpiar Módulo
                 </button>
             </div>
 
-            <div id="panel-voz-estado" style="display: none; margin-top: 10px; padding: 12px 16px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; text-align: center;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px;">
-                    <span class="pulse-dot"></span>
-                    <b style="color: #38bdf8; font-size: 14px;">Dictado de claves maestras activo</b>
+            <!-- PROMPTER CARD GUIADO (PREGUNTA POR PREGUNTA - HOJA BASE) -->
+            <div id="prompter-guiado" class="guided-prompter-box" style="display: none;">
+                <div class="guided-header">
+                    <div class="guided-badge">
+                        <span class="pulse-dot"></span>
+                        <span id="guided-badge-txt">DICTADO DE CLAVES EN VIVO</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button type="button" id="btn-toggle-tts" class="btn-tts active" onclick="toggleTTS()" title="Activar/Desactivar lectura en voz alta de las preguntas">
+                            <span id="icono-tts">🔊</span> <span id="texto-tts">Audio Preguntas: SÍ</span>
+                        </button>
+                    </div>
                 </div>
-                <p style="margin: 0; font-size: 12px; color: var(--muted);">
-                    Pronuncia letras en secuencia: <i>"A, B, D, C, bueno, omitida..."</i> — Las claves correctas se guardarán en vivo.
-                </p>
-                <div id="transcripcion-en-vivo" style="margin-top: 8px; font-size: 15px; color: #fff; font-weight: 800; min-height: 22px; font-family: monospace; letter-spacing: 2px;">
-                    Escuchando micrófono...
+
+                <div class="guided-body">
+                    <div class="guided-meta">
+                        Módulo actual: <b id="guided-mod-lbl" style="color: #fff;">Lectura</b> &bull; Clave oficial <span id="guided-reactivo-num" style="color: #fbbf24; font-weight: 800;">1</span> de <span id="guided-reactivo-tot">45</span>
+                    </div>
+
+                    <div class="guided-question-title">
+                        ¿Cuál es la clave correcta para la <span class="highlight-q">Pregunta #<span id="guided-q-num">1</span></span>?
+                    </div>
+
+                    <!-- Opciones A, B, C, D (Opción múltiple) -->
+                    <div id="guided-row-multi" class="guided-options-row">
+                        <button type="button" class="btn-guided-option" data-opt="A" onclick="seleccionarOpcionGuiada('A')">A</button>
+                        <button type="button" class="btn-guided-option" data-opt="B" onclick="seleccionarOpcionGuiada('B')">B</button>
+                        <button type="button" class="btn-guided-option" data-opt="C" onclick="seleccionarOpcionGuiada('C')">C</button>
+                        <button type="button" class="btn-guided-option" data-opt="D" onclick="seleccionarOpcionGuiada('D')">D</button>
+                        <button type="button" class="btn-guided-omitir" onclick="omitirPreguntaGuiada()" title="Dejar sin clave oficial">
+                            ⚪ Sin clave
+                        </button>
+                    </div>
+
+                    <!-- Input para Matemáticas 2 (Grid Numérico) -->
+                    <div id="guided-row-grid" class="guided-grid-row" style="display: none;">
+                        <input type="text" id="guided-grid-val" class="guided-grid-input" placeholder="Ej: 15 ó 1/2" maxlength="8" onkeydown="if(event.key==='Enter') guardarGridGuiado()">
+                        <button type="button" class="btn" style="width: auto; padding: 10px 16px; font-size: 13px; background: #fbbf24; color: #000; font-weight: 800;" onclick="guardarGridGuiado()">
+                            Guardar Clave y Siguiente ▶
+                        </button>
+                        <button type="button" class="btn-guided-omitir" onclick="omitirPreguntaGuiada()">
+                            ⚪ Omitir
+                        </button>
+                    </div>
+
+                    <!-- Navegación y Feedback en vivo -->
+                    <div class="guided-nav-footer">
+                        <button type="button" class="btn-nav-step" onclick="navegarPreguntaGuiada(-1)">
+                            ◀ Anterior
+                        </button>
+                        <div id="guided-feedback-msg" class="guided-feedback-msg">
+                            Di <i>"1 A"</i>, <i>"A"</i>, o pulsa una opción
+                        </div>
+                        <button type="button" class="btn-nav-step" onclick="navegarPreguntaGuiada(1)">
+                            Siguiente ▶
+                        </button>
+                    </div>
                 </div>
-                <div style="margin-top: 6px; font-size: 12px; color: #94a3b8;">
-                    Módulo actual: <b id="voz-seccion-nombre" style="color: #fff;">Lectura</b> | 
-                    Reactivo siguiente: <b id="voz-reactivo-actual" style="color: #38bdf8;">1</b> de <span id="voz-reactivo-total">45</span>
+            </div>
+
+            <!-- Panel de estado de dictado en tiempo real -->
+            <div id="panel-voz-estado" style="display: none; margin-top: 10px; padding: 10px 14px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; text-align: center;">
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">
+                    Dictado de claves maestras activo &bull; Di <i>"1 A"</i>, <i>"2 B"</i> o simplemente <i>"A"</i>, <i>"B"</i>...
+                </div>
+                <div id="transcripcion-en-vivo" style="font-size: 14px; color: #fbbf24; font-weight: 700; min-height: 20px; font-family: monospace;">
+                    🎤 Escuchando micrófono...
                 </div>
             </div>
         </div>
@@ -545,17 +794,23 @@ function renderModuloOpcion(secKey, inicio, fin, contenedorId) {
         const card = document.createElement('div');
         card.className = 'q-card' + (actual ? ' answered' : '');
         card.id = `q-${secKey}-${num}`;
+        card.style.cursor = 'pointer';
+        card.onclick = (e) => {
+            if (!e.target.closest('.bubble-btn')) {
+                enfocarPreguntaGuiada(i, dictandoActivo);
+            }
+        };
         card.innerHTML = `
             <div class="q-num">#${num}</div>
             <div class="bubble-options">
                 ${['A', 'B', 'C', 'D'].map(opt => `
                     <button type="button" class="bubble-btn ${actual === opt ? 'active' : ''}" 
                         data-sec="${secKey}" data-num="${num}" data-opt="${opt}" 
-                        onclick="marcarClave('${secKey}', '${num}', '${opt}')">${opt}</button>
+                        onclick="marcarClave('${secKey}', '${num}', '${opt}'); enfocarPreguntaGuiada(${num}, false);">${opt}</button>
                 `).join('')}
                 <button type="button" class="bubble-btn empty-btn ${!actual ? 'active' : ''}" 
                     data-sec="${secKey}" data-num="${num}" data-opt="" 
-                    onclick="marcarClave('${secKey}', '${num}', '')" title="Sin clave">⚪</button>
+                    onclick="marcarClave('${secKey}', '${num}', ''); enfocarPreguntaGuiada(${num}, false);" title="Sin clave">⚪</button>
             </div>
         `;
         cont.appendChild(card);
@@ -573,12 +828,19 @@ function renderModuloGrid(secKey, inicio, fin, contenedorId) {
         const card = document.createElement('div');
         card.className = 'q-card' + (actual ? ' answered-grid' : '');
         card.id = `q-mat2-${num}`;
+        card.style.cursor = 'pointer';
+        card.onclick = (e) => {
+            if (!e.target.closest('input')) {
+                enfocarPreguntaGuiada(i, dictandoActivo);
+            }
+        };
         card.innerHTML = `
             <div class="q-num" style="color:#fbbf24;">#${num}</div>
             <div style="flex:1; max-width: 140px;">
                 <input type="text" class="input-control" value="${escapeHtml(actual)}" placeholder="Ej. 18 ó 1/2" 
                     style="padding: 6px 10px; font-size: 14px; text-transform: uppercase; font-weight: 800; text-align: center; border-color: rgba(245, 158, 11, 0.5);"
-                    oninput="marcarClaveGrid('${num}', this.value)">
+                    onfocus="enfocarPreguntaGuiada(${num}, false);"
+                    oninput="marcarClaveGrid('${num}', this.value); enfocarPreguntaGuiada(${num}, false);">
             </div>
         `;
         cont.appendChild(card);
@@ -644,6 +906,8 @@ function cambiarModulo(mod) {
     if (elemSec) elemSec.textContent = spec.label;
     if (elemTot) elemTot.textContent = (spec.max - spec.min + 1);
     if (elemAct) elemAct.textContent = spec.min;
+
+    enfocarPreguntaGuiada(spec.min, dictandoActivo);
 }
 
 function actualizarContadores() {
@@ -690,10 +954,375 @@ function limpiarSeccionActiva() {
 }
 
 // ====================================================================
-// DICTADO POR VOZ (Web Speech API)
+// MOTOR DE DICTADO POR VOZ GUIADO DE HOJA BASE (PREGUNTA POR PREGUNTA)
 // ====================================================================
 let dictandoActivo = false;
 let reconocimientoVoz = null;
+let prompterManualVisible = false;
+let preguntaGuiadaActual = 1;
+let ttsHabilitado = true;
+let ignorarReconocimientoPorTTS = false;
+let ultimoTextoProcesado = '';
+let ultimoTiempoProcesado = 0;
+let debounceVozTimer = null;
+
+const MAPA_NUMEROS_TEXTO = {
+    'uno': 1, 'una': 1, 'primer': 1, 'primera': 1, 'primero': 1, 'un': 1,
+    'dos': 2, 'segunda': 2, 'segundo': 2,
+    'tres': 3, 'tercer': 3, 'tercera': 3, 'tercero': 3,
+    'cuatro': 4, 'cuarta': 4, 'cuarto': 4,
+    'cinco': 5, 'quinta': 5, 'quinto': 5,
+    'seis': 6, 'sexta': 6, 'sexto': 6,
+    'siete': 7, 'séptima': 7, 'septima': 7, 'séptimo': 7, 'septimo': 7,
+    'ocho': 8, 'octava': 8, 'octavo': 8,
+    'nueve': 9, 'novena': 9, 'noveno': 9,
+    'diez': 10, 'décima': 10, 'decima': 10, 'décimo': 10, 'decimo': 10,
+    'once': 11, 'doce': 12, 'trece': 13, 'catorce': 14, 'quince': 15,
+    'dieciséis': 16, 'dieciseis': 16, 'diecisiete': 17, 'dieciocho': 18, 'diecinueve': 19,
+    'veinte': 20, 'veintiuno': 21, 'veintiún': 21, 'veintiun': 21, 'veintidós': 22, 'veintidos': 22,
+    'veintitrés': 23, 'veintitres': 23, 'veinticuatro': 24, 'veinticinco': 25,
+    'veintiséis': 26, 'veintiseis': 26, 'veintisiete': 27, 'veintiocho': 28, 'veintinueve': 29,
+    'treinta': 30, 'cuarenta': 40, 'cincuenta': 50
+};
+
+function togglePrompterManual() {
+    prompterManualVisible = !prompterManualVisible;
+    const prompter = document.getElementById('prompter-guiado');
+    if (prompter) {
+        prompter.style.display = prompterManualVisible ? 'block' : 'none';
+    }
+    if (prompterManualVisible) {
+        enfocarPreguntaGuiada(preguntaGuiadaActual, false);
+    }
+}
+
+function toggleTTS() {
+    ttsHabilitado = !ttsHabilitado;
+    const btn = document.getElementById('btn-toggle-tts');
+    const icon = document.getElementById('icono-tts');
+    const txt = document.getElementById('texto-tts');
+    if (btn) btn.classList.toggle('active', ttsHabilitado);
+    if (icon) icon.textContent = ttsHabilitado ? '🔊' : '🔇';
+    if (txt) txt.textContent = ttsHabilitado ? 'Audio Preguntas: SÍ' : 'Audio Preguntas: NO';
+
+    if (ttsHabilitado && dictandoActivo) {
+        hablarPregunta(preguntaGuiadaActual);
+    }
+}
+
+function hablarPregunta(num) {
+    if (!ttsHabilitado || !window.speechSynthesis) return;
+    try {
+        window.speechSynthesis.cancel();
+        const ut = new SpeechSynthesisUtterance("Pregunta " + num);
+        ut.lang = 'es-MX';
+        ut.rate = 1.35;
+        ut.pitch = 1.0;
+        ignorarReconocimientoPorTTS = true;
+        ut.onend = function() {
+            setTimeout(() => { ignorarReconocimientoPorTTS = false; }, 250);
+        };
+        ut.onerror = function() {
+            ignorarReconocimientoPorTTS = false;
+        };
+        window.speechSynthesis.speak(ut);
+    } catch(e) {
+        ignorarReconocimientoPorTTS = false;
+    }
+}
+
+function enfocarPreguntaGuiada(num, hablar = false) {
+    const spec = ESPECIFICACIONES[moduloActivo];
+    if (num < spec.min) num = spec.min;
+    if (num > spec.max) num = spec.max;
+    preguntaGuiadaActual = num;
+
+    const elemQNum = document.getElementById('guided-q-num');
+    const elemReactivoNum = document.getElementById('guided-reactivo-num');
+    const elemReactivoTot = document.getElementById('guided-reactivo-tot');
+    const elemModLbl = document.getElementById('guided-mod-lbl');
+
+    if (elemQNum) elemQNum.textContent = num;
+    if (elemReactivoNum) elemReactivoNum.textContent = num;
+    if (elemReactivoTot) elemReactivoTot.textContent = spec.max;
+    if (elemModLbl) elemModLbl.textContent = spec.label;
+
+    const elemAct = document.getElementById('voz-reactivo-actual');
+    if (elemAct) elemAct.textContent = num;
+
+    document.querySelectorAll('.q-card.pregunta-enfocada').forEach(c => c.classList.remove('pregunta-enfocada'));
+
+    const cardId = (moduloActivo === 'matematicas2') ? `q-mat2-${num}` : `q-${moduloActivo === 'matematicas' ? 'matematicas' : moduloActivo}-${num}`;
+    const card = document.getElementById(cardId);
+    if (card) {
+        card.classList.add('pregunta-enfocada');
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    if (moduloActivo === 'matematicas2') {
+        const rowMulti = document.getElementById('guided-row-multi');
+        const rowGrid = document.getElementById('guided-row-grid');
+        if (rowMulti) rowMulti.style.display = 'none';
+        if (rowGrid) rowGrid.style.display = 'flex';
+        const inp = document.getElementById('guided-grid-val');
+        const valActual = (hojaBase.matematicas && hojaBase.matematicas[String(num)]) || '';
+        if (inp) inp.value = valActual;
+    } else {
+        const rowMulti = document.getElementById('guided-row-multi');
+        const rowGrid = document.getElementById('guided-row-grid');
+        if (rowMulti) rowMulti.style.display = 'flex';
+        if (rowGrid) rowGrid.style.display = 'none';
+        const secKey = (moduloActivo === 'matematicas') ? 'matematicas' : moduloActivo;
+        const respActual = (hojaBase[secKey] && hojaBase[secKey][String(num)]) || '';
+        document.querySelectorAll('.btn-guided-option').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-opt') === respActual);
+        });
+    }
+
+    if (hablar && dictandoActivo) {
+        hablarPregunta(num);
+    }
+}
+
+function seleccionarOpcionGuiada(opt) {
+    const spec = ESPECIFICACIONES[moduloActivo];
+    const secKey = (moduloActivo === 'matematicas') ? 'matematicas' : moduloActivo;
+    const num = preguntaGuiadaActual;
+
+    marcarClave(secKey, String(num), opt);
+
+    const cardId = `q-${secKey}-${num}`;
+    const card = document.getElementById(cardId);
+    if (card) {
+        card.classList.remove('guardado-exito');
+        void card.offsetWidth;
+        card.classList.add('guardado-exito');
+    }
+
+    const msgBox = document.getElementById('guided-feedback-msg');
+    if (msgBox) {
+        msgBox.innerHTML = `<span style="color:#10b981; font-weight:700;">✅ Clave #${num}: <b>${opt}</b> guardada</span>`;
+    }
+
+    const siguiente = num + 1;
+    if (siguiente <= spec.max) {
+        enfocarPreguntaGuiada(siguiente, true);
+    } else {
+        if (msgBox) msgBox.innerHTML = `<span style="color:#fbbf24; font-weight:800;">🎉 ¡Módulo ${spec.label} de Hoja Base completado!</span>`;
+        if (ttsHabilitado && window.speechSynthesis) {
+            try {
+                window.speechSynthesis.cancel();
+                const ut = new SpeechSynthesisUtterance("Módulo completado");
+                ut.lang = 'es-MX';
+                ut.rate = 1.3;
+                window.speechSynthesis.speak(ut);
+            } catch(e) {}
+        }
+    }
+}
+
+function guardarGridGuiado() {
+    const inp = document.getElementById('guided-grid-val');
+    const val = inp ? inp.value.trim().toUpperCase() : '';
+    const num = preguntaGuiadaActual;
+    marcarClaveGrid(String(num), val);
+
+    const cardId = `q-mat2-${num}`;
+    const card = document.getElementById(cardId);
+    if (card) {
+        card.classList.remove('guardado-exito');
+        void card.offsetWidth;
+        card.classList.add('guardado-exito');
+    }
+
+    const inpCard = document.querySelector(`#q-mat2-${num} input`);
+    if (inpCard) inpCard.value = val;
+
+    const msgBox = document.getElementById('guided-feedback-msg');
+    if (msgBox) {
+        msgBox.innerHTML = `<span style="color:#fbbf24; font-weight:700;">✅ Clave #${num}: <b>${val || 'Sin clave'}</b> guardada</span>`;
+    }
+
+    const siguiente = num + 1;
+    if (siguiente <= 55) {
+        enfocarPreguntaGuiada(siguiente, true);
+    } else {
+        if (msgBox) msgBox.innerHTML = `<span style="color:#fbbf24; font-weight:800;">🎉 ¡Módulo Matemáticas 2 completado!</span>`;
+    }
+}
+
+function omitirPreguntaGuiada() {
+    const spec = ESPECIFICACIONES[moduloActivo];
+    const num = preguntaGuiadaActual;
+    const msgBox = document.getElementById('guided-feedback-msg');
+    if (msgBox) {
+        msgBox.innerHTML = `<span style="color:#94a3b8;">⚪ Pregunta ${num} sin clave</span>`;
+    }
+    const siguiente = num + 1;
+    if (siguiente <= spec.max) {
+        enfocarPreguntaGuiada(siguiente, true);
+    }
+}
+
+function navegarPreguntaGuiada(delta) {
+    const spec = ESPECIFICACIONES[moduloActivo];
+    let dest = preguntaGuiadaActual + delta;
+    if (dest < spec.min) dest = spec.min;
+    if (dest > spec.max) dest = spec.max;
+    enfocarPreguntaGuiada(dest, true);
+}
+
+function interpretarDictadoGuiado(texto, preguntaActual = 1) {
+    if (!texto) return [];
+    let t = texto.toLowerCase().trim();
+
+    if (/\b(anterior|atras|atrás|regresar)\b/.test(t)) {
+        return [{ tipo: 'nav', delta: -1 }];
+    }
+    if (/\b(siguiente|adelante|omitir|paso|blanco|vacío|vacio|omitida)\b/.test(t)) {
+        return [{ tipo: 'nav', delta: 1 }];
+    }
+    if (/\b(repetir|repite)\b/.test(t)) {
+        return [{ tipo: 'repetir' }];
+    }
+
+    const decenas = [
+        ['treinta y nueve', 39], ['treinta y ocho', 38], ['treinta y siete', 37], ['treinta y seis', 36],
+        ['treinta y cinco', 35], ['treinta y cuatro', 34], ['treinta y tres', 33], ['treinta y dos', 32], ['treinta y uno', 31],
+        ['cuarenta y nueve', 49], ['cuarenta y ocho', 48], ['cuarenta y siete', 47], ['cuarenta y seis', 46],
+        ['cuarenta y cinco', 45], ['cuarenta y cuatro', 44], ['cuarenta y tres', 43], ['cuarenta y dos', 42], ['cuarenta y uno', 41],
+        ['cincuenta y cinco', 55], ['cincuenta y cuatro', 54], ['cincuenta y tres', 53], ['cincuenta y dos', 52], ['cincuenta y uno', 51]
+    ];
+    decenas.forEach(([txt, num]) => {
+        t = t.replace(new RegExp('\\b' + txt + '\\b', 'g'), String(num));
+    });
+
+    const fracciones = [
+        ['un medio', '1/2'], ['medio', '1/2'], ['un tercio', '1/3'], ['dos tercios', '2/3'],
+        ['un cuarto', '1/4'], ['tres cuartos', '3/4'], ['un quinto', '1/5'], ['dos quintos', '2/5'],
+        ['tres quintos', '3/5'], ['cuatro quintos', '4/5'], ['un sexto', '1/6'], ['cinco sextos', '5/6'],
+        ['cero punto cinco', '0.5'], ['cero punto veinticinco', '0.25'], ['cero punto setenta y cinco', '0.75']
+    ];
+    fracciones.forEach(([txt, val]) => {
+        t = t.replace(new RegExp('\\b' + txt + '\\b', 'g'), val);
+    });
+
+    Object.keys(MAPA_NUMEROS_TEXTO).forEach(pal => {
+        t = t.replace(new RegExp('\\b' + pal + '\\b', 'g'), String(MAPA_NUMEROS_TEXTO[pal]));
+    });
+
+    t = t.replace(/\b(bueno|vaca|be|ve|vé|bé)\b/g, ' b ');
+    t = t.replace(/\b(casa|ce|sé|se|cé)\b/g, ' c ');
+    t = t.replace(/\b(dedo|dado|de|dé)\b/g, ' d ');
+    t = t.replace(/\b(ah|ha)\b/g, ' a ');
+
+    t = t.replace(/\b(pregunta|reactivo|número|numero|la|el|es|opción|opcion|letra|clave)\b/g, ' ');
+    t = t.replace(/[.,;:!?]/g, ' ').replace(/\s+/g, ' ').trim();
+
+    const acciones = [];
+
+    const regexPar = /(\d{1,2})\s*([abcdABCD])\b/g;
+    let match;
+    let tienePares = false;
+    while ((match = regexPar.exec(t)) !== null) {
+        tienePares = true;
+        acciones.push({
+            tipo: 'respuesta',
+            numero: parseInt(match[1], 10),
+            opcion: match[2].toUpperCase()
+        });
+    }
+
+    if (!tienePares) {
+        const matchNumVal = t.match(/^(\d{1,2})\s+([0-9\.\/]+)$/);
+        if (matchNumVal) {
+            acciones.push({
+                tipo: 'grid',
+                numero: parseInt(matchNumVal[1], 10),
+                valor: matchNumVal[2]
+            });
+            return acciones;
+        }
+
+        const matchSoloNum = t.match(/^(\d{1,2})$/);
+        if (matchSoloNum) {
+            acciones.push({
+                tipo: 'ir_a',
+                numero: parseInt(matchSoloNum[1], 10)
+            });
+            return acciones;
+        }
+
+        const tokens = t.split(/\s+/);
+        let currNum = preguntaActual;
+        for (let tok of tokens) {
+            if (/^[abcdABCD]$/.test(tok)) {
+                acciones.push({
+                    tipo: 'respuesta',
+                    numero: currNum,
+                    opcion: tok.toUpperCase()
+                });
+                currNum++;
+            } else if (/^[0-9\.\/]+$/.test(tok) && currNum >= 46 && currNum <= 55) {
+                acciones.push({
+                    tipo: 'grid',
+                    numero: currNum,
+                    valor: tok
+                });
+                currNum++;
+            }
+        }
+    }
+
+    return acciones;
+}
+
+function procesarFraseVoz(frase) {
+    if (ignorarReconocimientoPorTTS) return;
+    if (!frase || !frase.trim()) return;
+
+    const textoLimpio = frase.trim();
+    const ahora = Date.now();
+    if (ultimoTextoProcesado === textoLimpio && (ahora - ultimoTiempoProcesado < 800)) {
+        return;
+    }
+    ultimoTextoProcesado = textoLimpio;
+    ultimoTiempoProcesado = ahora;
+
+    const liveBox = document.getElementById('transcripcion-en-vivo');
+    if (liveBox) {
+        liveBox.textContent = `🎤 "${textoLimpio}"`;
+    }
+
+    const acciones = interpretarDictadoGuiado(textoLimpio, preguntaGuiadaActual);
+    if (!acciones || acciones.length === 0) return;
+
+    const spec = ESPECIFICACIONES[moduloActivo];
+
+    for (let acc of acciones) {
+        if (acc.tipo === 'nav') {
+            navegarPreguntaGuiada(acc.delta);
+        } else if (acc.tipo === 'repetir') {
+            hablarPregunta(preguntaGuiadaActual);
+        } else if (acc.tipo === 'ir_a') {
+            enfocarPreguntaGuiada(acc.numero, true);
+        } else if (acc.tipo === 'respuesta') {
+            const num = acc.numero;
+            if (num >= spec.min && num <= spec.max && moduloActivo !== 'matematicas2') {
+                preguntaGuiadaActual = num;
+                seleccionarOpcionGuiada(acc.opcion);
+            }
+        } else if (acc.tipo === 'grid') {
+            const num = acc.numero;
+            if (num >= 46 && num <= 55 && moduloActivo === 'matematicas2') {
+                preguntaGuiadaActual = num;
+                const inp = document.getElementById('guided-grid-val');
+                if (inp) inp.value = acc.valor;
+                guardarGridGuiado();
+            }
+        }
+    }
+}
 
 function toggleDictadoVoz() {
     if (dictandoActivo) {
@@ -720,65 +1349,54 @@ function iniciarDictadoVoz() {
         reconocimientoVoz.maxAlternatives = 1;
 
         dictandoActivo = true;
+        prompterManualVisible = true;
 
         const btnVoz = document.getElementById('btn-dictado-voz');
         const iconMic = document.getElementById('icono-mic');
         const txtVoz = document.getElementById('texto-btn-voz');
+        const prompter = document.getElementById('prompter-guiado');
         const panelEstado = document.getElementById('panel-voz-estado');
         const transVivo = document.getElementById('transcripcion-en-vivo');
 
         if (btnVoz) btnVoz.classList.add('activo');
         if (iconMic) iconMic.textContent = '⏹️';
         if (txtVoz) txtVoz.textContent = 'Detener Dictado';
+        if (prompter) prompter.style.display = 'block';
         if (panelEstado) panelEstado.style.display = 'block';
         if (transVivo) transVivo.textContent = '🎤 Escuchando micrófono...';
 
+        enfocarPreguntaGuiada(preguntaGuiadaActual, true);
+
         reconocimientoVoz.onresult = function(event) {
-            let textoCompleto = '';
-            for (let i = 0; i < event.results.length; ++i) {
-                textoCompleto += event.results[i][0].transcript + ' ';
+            if (ignorarReconocimientoPorTTS) return;
+
+            let finalFrase = '';
+            let interinFrase = '';
+
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                const item = event.results[i];
+                const transc = item[0].transcript;
+                if (item.isFinal) {
+                    finalFrase += transc + ' ';
+                } else {
+                    interinFrase += transc + ' ';
+                }
             }
 
-            const letras = parsearDictadoALetras(textoCompleto);
-            if (letras.length === 0) return;
+            if (interinFrase.trim() !== '') {
+                const live = document.getElementById('transcripcion-en-vivo');
+                if (live) live.textContent = '🎤 ' + interinFrase.trim();
+            }
 
-            const spec = ESPECIFICACIONES[moduloActivo];
-
-            if (moduloActivo === 'matematicas2') {
-                letras.forEach((val, idx) => {
-                    const num = 46 + idx;
-                    if (num <= 55) {
-                        marcarClaveGrid(String(num), val);
-                        const inp = document.querySelector(`#q-mat2-${num} input`);
-                        if (inp) inp.value = val;
+            if (finalFrase.trim() !== '') {
+                procesarFraseVoz(finalFrase.trim());
+            } else if (interinFrase.trim() !== '') {
+                clearTimeout(debounceVozTimer);
+                debounceVozTimer = setTimeout(() => {
+                    if (!ignorarReconocimientoPorTTS && interinFrase.trim() !== '') {
+                        procesarFraseVoz(interinFrase.trim());
                     }
-                });
-
-                if (transVivo) transVivo.textContent = letras.slice(-5).join(' ') || 'Escuchando...';
-                const reactivoSig = Math.min(46 + letras.length, 55);
-                const elemAct = document.getElementById('voz-reactivo-actual');
-                if (elemAct) elemAct.textContent = reactivoSig;
-
-                const cardAct = document.getElementById(`q-mat2-${Math.min(46 + (letras.length ? (letras.length - 1) : 0), 55)}`);
-                if (cardAct) cardAct.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            } else {
-                const secKey = (moduloActivo === 'matematicas') ? 'matematicas' : moduloActivo;
-                const totalSec = spec.max;
-
-                letras.forEach((letra, idx) => {
-                    const num = idx + 1;
-                    if (num <= totalSec) {
-                        marcarClave(secKey, String(num), letra);
-                    }
-                });
-
-                if (transVivo) transVivo.textContent = letras.slice(-10).join(' ') || 'Escuchando...';
-                const reactivoSig = Math.min(letras.length + 1, totalSec);
-                const elemAct = document.getElementById('voz-reactivo-actual');
-                if (elemAct) elemAct.textContent = reactivoSig;
-
-                const cardAct = document.getElementById(`q-${secKey}-${letras.length || 1}`);
-                if (cardAct) cardAct.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 750);
             }
         };
 
@@ -811,6 +1429,10 @@ function detenerDictadoVoz() {
         reconocimientoVoz = null;
     }
 
+    if (window.speechSynthesis) {
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+    }
+
     const btnVoz = document.getElementById('btn-dictado-voz');
     const iconMic = document.getElementById('icono-mic');
     const txtVoz = document.getElementById('texto-btn-voz');
@@ -818,40 +1440,8 @@ function detenerDictadoVoz() {
 
     if (btnVoz) btnVoz.classList.remove('activo');
     if (iconMic) iconMic.textContent = '🎙️';
-    if (txtVoz) txtVoz.textContent = 'Iniciar Dictado por Voz';
+    if (txtVoz) txtVoz.textContent = 'Iniciar Dictado Guiado de Claves';
     if (panelEstado) panelEstado.style.display = 'none';
-}
-
-function parsearDictadoALetras(texto) {
-    if (!texto) return [];
-    const t = texto.toLowerCase().replace(/[.,;:!?]/g, ' ').trim();
-    const palabras = t.split(/\s+/);
-    const letras = [];
-
-    for (let p of palabras) {
-        if (!p) continue;
-        if (p === 'a' || p === 'ah' || p === 'ha') {
-            letras.push('A');
-        } else if (p === 'b' || p === 'be' || p === 've' || p === 'bé' || p === 'vé' || p === 'bueno') {
-            letras.push('B');
-        } else if (p === 'c' || p === 'ce' || p === 'se' || p === 'sé' || p === 'cé' || p === 'casa') {
-            letras.push('C');
-        } else if (p === 'd' || p === 'de' || p === 'dé' || p === 'dedo' || p === 'dado') {
-            letras.push('D');
-        } else if (p === 'blanco' || p === 'paso' || p === 'omitida' || p === 'vacio' || p === 'vacío' || p === 'ninguna') {
-            letras.push('');
-        } else if (/^[0-9\/\.]+$/.test(p)) {
-            letras.push(p);
-        } else {
-            for (let ch of p) {
-                if (ch === 'a') letras.push('A');
-                else if (ch === 'b' || ch === 'v') letras.push('B');
-                else if (ch === 'c' || ch === 's') letras.push('C');
-                else if (ch === 'd') letras.push('D');
-            }
-        }
-    }
-    return letras;
 }
 
 // ====================================================================

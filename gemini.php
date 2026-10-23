@@ -451,6 +451,29 @@ function gemini_preparar_recortes_completos($imageBytes) {
         $h = imagesy($img);
     }
 
+    // 3. Detectar si la hoja está invertida 180° (por ejemplo colocada al revés en la cama del escáner)
+    $esRojo = function($im, $x, $y) {
+        $rgb = @imagecolorat($im, (int)$x, (int)$y);
+        $r = ($rgb >> 16) & 0xFF;
+        $g = ($rgb >> 8) & 0xFF;
+        $b = $rgb & 0xFF;
+        return ($r > 160 && $g < 90 && $b < 120);
+    };
+    $rojoArriba = 0;
+    for ($sx = (int)($w * 0.45); $sx < (int)($w * 0.75); $sx += (int)($w * 0.05)) {
+        if ($esRojo($img, $sx, (int)($h * 0.08))) $rojoArriba++;
+    }
+    $rojoAbajo = 0;
+    for ($sx = (int)($w * 0.25); $sx < (int)($w * 0.55); $sx += (int)($w * 0.05)) {
+        if ($esRojo($img, $sx, (int)($h * 0.92))) $rojoAbajo++;
+    }
+    if ($rojoAbajo > $rojoArriba && function_exists('imagerotate')) {
+        bot_log("Hoja detectada invertida 180° en escáner. Rotando automáticamente a orientación vertical correcta.");
+        $img = imagerotate($img, 180, 0);
+        $w = imagesx($img);
+        $h = imagesy($img);
+    }
+
     $helperCrop = function($rect) use ($img) {
         $c = @imagecrop($img, $rect);
         if (!$c) return false;
@@ -461,49 +484,49 @@ function gemini_preparar_recortes_completos($imageBytes) {
         return $bytes;
     };
 
-    // Coordenadas proporcionales optimizadas con márgenes de seguridad para encuadres de celular
+    // Coordenadas proporcionales calibradas para escaneo plano y fotografías
     $crops = [
         'lectura' => $helperCrop([
-            'x' => (int)($w * 0.22),
-            'y' => (int)($h * 0.10),
-            'width' => (int)($w * 0.76),
-            'height' => (int)($h * 0.18)
+            'x' => (int)($w * 0.30),
+            'y' => (int)($h * 0.07),
+            'width' => (int)($w * 0.68),
+            'height' => (int)($h * 0.19)
         ]),
         'redaccion' => $helperCrop([
-            'x' => (int)($w * 0.22),
-            'y' => (int)($h * 0.22),
-            'width' => (int)($w * 0.76),
-            'height' => (int)($h * 0.14)
+            'x' => (int)($w * 0.30),
+            'y' => (int)($h * 0.25),
+            'width' => (int)($w * 0.68),
+            'height' => (int)($h * 0.13)
         ]),
         'matematicas_mc' => $helperCrop([
-            'x' => (int)($w * 0.22),
-            'y' => (int)($h * 0.30),
-            'width' => (int)($w * 0.50),
-            'height' => (int)($h * 0.23)
+            'x' => (int)($w * 0.30),
+            'y' => (int)($h * 0.36),
+            'width' => (int)($w * 0.42),
+            'height' => (int)($h * 0.24)
         ]),
         'matematicas_46_47' => $helperCrop([
-            'x' => (int)($w * 0.64),
-            'y' => (int)($h * 0.30),
-            'width' => (int)($w * 0.34),
-            'height' => (int)($h * 0.23)
+            'x' => (int)($w * 0.70),
+            'y' => (int)($h * 0.36),
+            'width' => (int)($w * 0.28),
+            'height' => (int)($h * 0.24)
         ]),
         'matematicas_48_51' => $helperCrop([
-            'x' => 0,
-            'y' => (int)($h * 0.47),
-            'width' => (int)($w * 0.52),
-            'height' => (int)($h * 0.23)
+            'x' => (int)($w * 0.01),
+            'y' => (int)($h * 0.58),
+            'width' => (int)($w * 0.49),
+            'height' => (int)($h * 0.24)
         ]),
         'matematicas_52_55' => $helperCrop([
-            'x' => (int)($w * 0.47),
-            'y' => (int)($h * 0.47),
-            'width' => (int)($w * 0.52),
-            'height' => (int)($h * 0.23)
+            'x' => (int)($w * 0.49),
+            'y' => (int)($h * 0.58),
+            'width' => (int)($w * 0.49),
+            'height' => (int)($h * 0.24)
         ]),
         'datos_alumno' => $helperCrop([
             'x' => 0,
             'y' => 0,
-            'width' => (int)($w * 0.75),
-            'height' => (int)($h * 0.22)
+            'width' => (int)($w * 0.35),
+            'height' => (int)($h * 0.35)
         ])
     ];
 
@@ -1141,7 +1164,9 @@ EOT;
         ];
 
         if (isset($data['lectura']) && is_array($data['lectura'])) {
-            foreach ($data['lectura'] as $num => $val) {
+            $isIndexed = array_keys($data['lectura']) === range(0, count($data['lectura']) - 1);
+            foreach ($data['lectura'] as $k => $val) {
+                $num = $isIndexed ? ($k + 1) : $k;
                 $valStr = strtoupper(trim((string)$val));
                 if (in_array($valStr, ['A', 'B', 'C', 'D'])) {
                     $limpio['lectura'][(string)$num] = $valStr;
@@ -1150,7 +1175,9 @@ EOT;
         }
 
         if (isset($data['redaccion']) && is_array($data['redaccion'])) {
-            foreach ($data['redaccion'] as $num => $val) {
+            $isIndexed = array_keys($data['redaccion']) === range(0, count($data['redaccion']) - 1);
+            foreach ($data['redaccion'] as $k => $val) {
+                $num = $isIndexed ? ($k + 1) : $k;
                 $valStr = strtoupper(trim((string)$val));
                 if (in_array($valStr, ['A', 'B', 'C', 'D'])) {
                     $limpio['redaccion'][(string)$num] = $valStr;
@@ -1159,7 +1186,9 @@ EOT;
         }
 
         if (isset($data['matematicas']) && is_array($data['matematicas'])) {
-            foreach ($data['matematicas'] as $num => $val) {
+            $isIndexed = array_keys($data['matematicas']) === range(0, count($data['matematicas']) - 1);
+            foreach ($data['matematicas'] as $k => $val) {
+                $num = $isIndexed ? ($k + 1) : $k;
                 $numInt = intval($num);
                 $valStr = strtoupper(trim((string)$val));
                 if ($numInt >= 46 && $numInt <= 55) {

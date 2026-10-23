@@ -16,6 +16,7 @@ $mesaInicial = intval($_GET['mesa'] ?? 1);
 if ($mesaInicial < 1 || $mesaInicial > 5) $mesaInicial = 1;
 $idDirecto = trim($_GET['id'] ?? '');
 
+$hostActual = $_SERVER['HTTP_HOST'] ?? 'calificador.lumieresocial.com';
 $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADMIN_PASSWORD);
 ?>
 <!DOCTYPE html>
@@ -23,7 +24,7 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mesas de Calificación y Auditoría - Instituto Lumière</title>
+    <title>Mesa <?php echo $mesaInicial; ?> &bull; Auditoría y Calificación en Vivo | Instituto Lumière</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -34,13 +35,16 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             --bg: #090d16;
             --card-bg: #111827;
             --card-surface: #1a243b;
+            --card-surface-hover: #22304e;
             --border: #263352;
+            --border-light: #334155;
             --text: #f8fafc;
             --muted: #94a3b8;
             --success: #10b981;
             --danger: #ef4444;
             --warning: #fbbf24;
             --accent: #38bdf8;
+            --purple: #c084fc;
         }
 
         * { box-sizing: border-box; }
@@ -50,7 +54,7 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             background: var(--bg);
             color: var(--text);
             margin: 0;
-            padding: 12px 16px;
+            padding: 10px 14px 24px 14px;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -61,7 +65,7 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 14px;
-            padding: 10px 16px;
+            padding: 8px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -73,7 +77,7 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
         .brand-section {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
         .brand-badge {
             background: linear-gradient(135deg, #c01b2f 0%, #9e1324 100%);
@@ -89,8 +93,12 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             font-weight: 800;
             color: #fff;
             margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
+        /* SELECTOR DE MESAS 1 A 5 */
         .mesas-nav {
             display: flex;
             gap: 6px;
@@ -119,7 +127,7 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
             border-color: #38bdf8;
             color: #fff;
-            box-shadow: 0 2px 8px rgba(56, 189, 248, 0.4);
+            box-shadow: 0 2px 10px rgba(56, 189, 248, 0.4);
         }
 
         .status-indicator {
@@ -149,21 +157,89 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             100% { transform: scale(0.9); opacity: 0.7; }
         }
 
-        /* CONTENEDOR PRINCIPAL PANTALLA DIVIDIDA */
+        .tool-btn {
+            background: var(--card-surface);
+            border: 1px solid var(--border);
+            color: #cbd5e1;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+        .tool-btn:hover {
+            color: #fff;
+            border-color: var(--accent);
+            background: var(--card-surface-hover);
+        }
+
+        /* PANTALLA EN ESPERA (STANDBY) - VISIBLE POR DEFECTO */
+        .standby-card {
+            background: var(--card-bg);
+            border: 2px dashed var(--border);
+            border-radius: 18px;
+            padding: 40px 24px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            min-height: calc(100vh - 120px);
+            margin: auto;
+            max-width: 860px;
+            width: 100%;
+        }
+        .qr-box-img {
+            background: #fff;
+            padding: 10px;
+            border-radius: 14px;
+            margin: 16px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            width: 170px;
+            height: 170px;
+        }
+
+        .btn-demo-test {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            border: 1px solid #38bdf8;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 800;
+            padding: 12px 22px;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .btn-demo-test:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.5);
+        }
+
+        /* ESPACIO DE TRABAJO A PANTALLA DIVIDIDA */
         .workspace-split {
-            display: grid;
+            display: none;
             grid-template-columns: 1fr;
             gap: 14px;
             flex: 1;
-            min-height: calc(100vh - 100px);
+            min-height: calc(100vh - 90px);
         }
-        @media (min-width: 900px) {
+        @media (min-width: 960px) {
             .workspace-split {
-                grid-template-columns: 48% 52%;
+                grid-template-columns: 44% 56%;
             }
         }
 
-        /* COLUMNA IZQUIERDA: VISOR DE FOTO EN ALTA RESOLUCIÓN */
+        /* COLUMNA IZQUIERDA: VISOR DE FOTO */
         .photo-viewer-card {
             background: var(--card-bg);
             border: 1px solid var(--border);
@@ -172,9 +248,10 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             flex-direction: column;
             overflow: hidden;
             position: relative;
+            min-height: 520px;
         }
         .viewer-toolbar {
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(15, 23, 42, 0.95);
             border-bottom: 1px solid var(--border);
             padding: 8px 12px;
             display: flex;
@@ -182,21 +259,7 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             align-items: center;
             font-size: 12px;
             font-weight: 700;
-        }
-        .tool-btn {
-            background: var(--card-surface);
-            border: 1px solid var(--border);
-            color: #cbd5e1;
-            padding: 5px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-        .tool-btn:hover {
-            color: #fff;
-            border-color: var(--accent);
+            z-index: 10;
         }
         .photo-stage {
             flex: 1;
@@ -214,12 +277,22 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             cursor: grabbing;
         }
         .photo-img {
-            max-width: 95%;
-            max-height: 95%;
+            max-width: 94%;
+            max-height: 94%;
             transition: transform 0.15s ease-out;
             transform-origin: center center;
             border-radius: 6px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        }
+
+        .demo-sheet-placeholder {
+            background: #0b1324;
+            border: 2px dashed #263352;
+            border-radius: 12px;
+            padding: 30px 24px;
+            text-align: center;
+            max-width: 380px;
+            width: 90%;
         }
 
         /* COLUMNA DERECHA: AUDITORÍA Y CORRECCIÓN */
@@ -227,11 +300,11 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 14px;
-            padding: 16px 18px;
+            padding: 14px 16px;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
-            max-height: calc(100vh - 100px);
+            max-height: calc(100vh - 90px);
         }
 
         .student-header {
@@ -240,72 +313,189 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             align-items: center;
             flex-wrap: wrap;
             gap: 10px;
-            padding-bottom: 12px;
+            padding-bottom: 10px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            margin-bottom: 12px;
-        }
-        .student-name-box {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin-bottom: 10px;
         }
         .student-name-input {
-            background: #0f172a;
+            background: #0b1324;
             border: 1px solid #38bdf8;
             color: #fff;
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 800;
-            padding: 4px 10px;
+            padding: 5px 12px;
             border-radius: 8px;
             font-family: inherit;
+            width: 100%;
+            max-width: 380px;
         }
 
-        /* TARJETA DE RESULTADOS PRELIMINARES */
-        .score-preview-box {
-            background: linear-gradient(135deg, #131f38 0%, #1c2b4d 100%);
-            border: 2px solid var(--accent);
-            border-radius: 12px;
-            padding: 14px 16px;
-            margin-bottom: 12px;
-            box-shadow: 0 4px 18px rgba(56, 189, 248, 0.2);
+        /* ==========================================================
+           LAS 4 TARJETAS DE PUNTAJES CLAVE (LECTURA/REDACCIÓN, MATE, TOTAL, PROMEDIO)
+           ========================================================== */
+        .scores-quad-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
         }
-        .score-preview-header {
+        @media (min-width: 600px) {
+            .scores-quad-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .score-quad-card {
+            background: linear-gradient(145deg, #131b2e 0%, #1a243b 100%);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 12px;
             display: flex;
+            flex-direction: column;
             justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .score-quad-card:hover {
+            border-color: #475569;
+            transform: translateY(-1px);
+        }
+        .score-quad-card.card-verbal {
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.12);
+        }
+        .score-quad-card.card-mate {
+            border-color: rgba(251, 191, 36, 0.4);
+            box-shadow: 0 4px 14px rgba(251, 191, 36, 0.12);
+        }
+        .score-quad-card.card-total {
+            border-color: rgba(16, 185, 129, 0.4);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+        }
+        .score-quad-card.card-promedio {
+            border-color: rgba(192, 132, 252, 0.4);
+            box-shadow: 0 4px 14px rgba(192, 132, 252, 0.12);
+        }
+
+        .score-quad-tag {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
+            margin-bottom: 2px;
+            display: flex;
             align-items: center;
+            justify-content: space-between;
+        }
+        .score-quad-val {
+            font-size: 24px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin: 2px 0;
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        .score-quad-sub {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+        .pts-unit {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+        }
+
+        /* BARRA DE RESUMEN DE ACIERTOS / ERRORES / OMITIDAS */
+        .counters-bar {
+            background: #0b1324;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        /* RECALCULANDO BADGE ANIMADO */
+        .recalc-pill {
+            background: rgba(56, 189, 248, 0.18);
+            border: 1px solid #38bdf8;
+            color: #38bdf8;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 800;
+            animation: pulse-recalc 1s infinite;
+        }
+        @keyframes pulse-recalc {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        /* ==========================================================
+           LAS 4 PESTAÑAS MODULARES DE SECCIONES (Lectura, Redacción, Mate 1, Mate 2)
+           ========================================================== */
+        .sections-tabs-row {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 4px;
             margin-bottom: 8px;
         }
-        .score-total-val {
-            font-size: 32px;
-            font-weight: 900;
-            color: var(--accent);
-            line-height: 1;
-        }
-        .score-subbars {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            background: rgba(0, 0, 0, 0.25);
-            padding: 8px 12px;
-            border-radius: 8px;
-            margin-top: 8px;
+        .sec-tab-btn {
+            background: var(--card-surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 7px 12px;
+            border-radius: 10px;
             font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sec-tab-btn:hover {
+            color: #fff;
+            border-color: #475569;
+        }
+        .sec-tab-btn.active {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            border-color: #38bdf8;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(56, 189, 248, 0.35);
+        }
+        .sec-tab-pill {
+            background: rgba(0, 0, 0, 0.35);
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 6px;
+            font-weight: 800;
         }
 
-        /* FILTROS DE REACTIVOS */
+        /* FILTROS RÁPIDOS */
         .filters-row {
             display: flex;
             gap: 6px;
             align-items: center;
             flex-wrap: wrap;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
         .filter-chip {
             background: var(--card-surface);
             border: 1px solid var(--border);
             color: var(--muted);
-            padding: 6px 12px;
-            border-radius: 20px;
+            padding: 5px 10px;
+            border-radius: 16px;
             font-size: 11px;
             font-weight: 800;
             cursor: pointer;
@@ -315,31 +505,52 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             color: #fff;
         }
         .filter-chip.active {
-            background: rgba(56, 189, 248, 0.15);
+            background: rgba(56, 189, 248, 0.18);
             border-color: var(--accent);
             color: var(--accent);
         }
         .filter-chip.danger-chip.active {
-            background: rgba(239, 68, 68, 0.18);
+            background: rgba(239, 68, 68, 0.2);
             border-color: #ef4444;
             color: #f87171;
         }
+        .filter-chip.success-chip.active {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            color: #34d399;
+        }
 
-        /* LISTA DE REACTIVOS INTERACTIVA */
+        /* LISTA INTERACTIVA DE REACTIVOS */
         .questions-list {
             display: flex;
             flex-direction: column;
             gap: 6px;
             overflow-y: auto;
-            max-height: 440px;
+            max-height: 480px;
             padding-right: 4px;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
+
+        .section-separator-title {
+            background: linear-gradient(90deg, #131f38 0%, #0d1527 100%);
+            border: 1px solid #263352;
+            border-left: 4px solid var(--accent);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #38bdf8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 6px 0 2px 0;
+        }
+
         .q-row {
             background: var(--card-surface);
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 8px 12px;
+            padding: 7px 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -347,12 +558,12 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             transition: all 0.15s;
         }
         .q-row.row-acierto {
-            border-color: rgba(16, 185, 129, 0.3);
-            background: rgba(16, 185, 129, 0.04);
+            border-color: rgba(16, 185, 129, 0.35);
+            background: rgba(16, 185, 129, 0.05);
         }
         .q-row.row-error {
             border-color: rgba(239, 68, 68, 0.5);
-            background: rgba(239, 68, 68, 0.1);
+            background: rgba(239, 68, 68, 0.12);
         }
         .q-row.row-omitida {
             border-color: rgba(148, 163, 184, 0.3);
@@ -363,37 +574,41 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             display: flex;
             align-items: center;
             gap: 10px;
-            min-width: 140px;
+            min-width: 150px;
         }
         .q-badge-num {
             font-size: 13px;
             font-weight: 800;
             color: #94a3b8;
-            min-width: 38px;
+            min-width: 42px;
         }
         .q-status-tag {
             font-size: 11px;
             font-weight: 700;
-            padding: 2px 8px;
+            padding: 3px 8px;
             border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
         .q-status-tag.tag-acierto { background: rgba(16, 185, 129, 0.2); color: #34d399; }
         .q-status-tag.tag-error { background: rgba(239, 68, 68, 0.2); color: #f87171; }
         .q-status-tag.tag-omitida { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
 
+        /* BURBUJAS DE OPCIÓN MÚLTIPLE INTERACTIVAS */
         .q-bubbles-box {
             display: flex;
-            gap: 4px;
+            gap: 5px;
             align-items: center;
         }
         .bubble-btn-audit {
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             border: 1px solid var(--border);
             background: #0f172a;
             color: #cbd5e1;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 800;
             cursor: pointer;
             display: inline-flex;
@@ -404,16 +619,43 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
         .bubble-btn-audit:hover {
             border-color: #94a3b8;
             color: #fff;
+            background: #1e293b;
         }
         .bubble-btn-audit.active {
             background: var(--accent);
             border-color: var(--accent);
             color: #090d16;
+            font-weight: 900;
             box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
         }
         .bubble-btn-audit.is-correct-key {
             border-color: #10b981;
-            box-shadow: inset 0 0 0 1px #10b981;
+            box-shadow: inset 0 0 0 1.5px #10b981;
+        }
+        .bubble-btn-audit.active.is-correct-key {
+            background: #10b981;
+            border-color: #10b981;
+            color: #090d16;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        /* GRID / CUADRÍCULA EN MATEMÁTICAS 2 */
+        .grid-input-audit {
+            width: 90px;
+            padding: 5px 8px;
+            font-size: 13px;
+            font-weight: 800;
+            text-align: center;
+            background: #0f172a;
+            border: 1px solid #fbbf24;
+            color: #fff;
+            border-radius: 6px;
+            font-family: inherit;
+        }
+        .grid-input-audit:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
         }
 
         /* BARRA INFERIOR DE ACCIONES */
@@ -430,9 +672,9 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: #fff;
             border: none;
-            padding: 12px 20px;
+            padding: 11px 20px;
             border-radius: 10px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 800;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
@@ -443,12 +685,13 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
         }
         .btn-sellar:hover {
             transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
         }
         .btn-descartar {
             background: #1e293b;
             border: 1px solid var(--border);
             color: var(--muted);
-            padding: 12px 16px;
+            padding: 11px 16px;
             border-radius: 10px;
             font-size: 13px;
             font-weight: 700;
@@ -462,29 +705,6 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             color: #ef4444;
             border-color: #ef4444;
         }
-
-        /* PANTALLA EN ESPERA (STANDBY) */
-        .standby-card {
-            background: var(--card-bg);
-            border: 2px dashed var(--border);
-            border-radius: 16px;
-            padding: 50px 20px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 480px;
-        }
-        .qr-box-img {
-            background: #fff;
-            padding: 10px;
-            border-radius: 12px;
-            margin: 16px 0;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-            width: 170px;
-            height: 170px;
-        }
     </style>
 </head>
 <body>
@@ -493,7 +713,9 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
     <div class="top-navbar">
         <div class="brand-section">
             <span class="brand-badge">ESTACIONES PAA</span>
-            <h1 class="brand-title">Mesas de Calificación en Vivo</h1>
+            <h1 class="brand-title">
+                Mesas de Calificación en Vivo
+            </h1>
         </div>
 
         <!-- SELECTOR DE MESAS 1 A 5 -->
@@ -508,46 +730,65 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
         <div style="display: flex; align-items: center; gap: 8px;">
             <div class="status-indicator">
                 <span class="pulse-dot"></span>
-                <span id="lblMesaStatus">Mesa <?php echo $mesaInicial; ?> lista</span>
+                <span id="lblMesaStatus">Mesa <?php echo $mesaInicial; ?> Conectada</span>
             </div>
-            <a href="panel.php" class="tool-btn" style="text-decoration: none;" title="Regresar al Panel Docente">
+            <a href="escaner_mesa.php?mesa=<?php echo $mesaInicial; ?>" target="_blank" class="tool-btn" title="Abrir Escáner Móvil">
+                📱 Escáner
+            </a>
+            <a href="panel.php" class="tool-btn" title="Ir al Panel Docente">
                 📊 Panel
             </a>
         </div>
     </div>
 
-    <!-- PANTALLA EN ESPERA (STANDBY) -->
-    <div id="pantallaStandby" class="standby-card" style="display: none;">
-        <div class="status-indicator" style="margin-bottom: 12px;">
+    <!-- PANTALLA EN ESPERA (STANDBY) - VISIBLE POR DEFECTO -->
+    <div id="pantallaStandby" class="standby-card">
+        <div class="status-indicator" style="margin-bottom: 14px;">
             <span class="pulse-dot"></span>
-            <span>Mesa <?php echo $mesaInicial; ?> Conectada</span>
+            <span>Mesa <?php echo $mesaInicial; ?> Lista &bull; Esperando Examen</span>
         </div>
-        <h2 style="font-size: 24px; margin: 0 0 8px 0; color: #fff;">Esperando fotografía desde el celular...</h2>
-        <p style="color: var(--muted); font-size: 14px; max-width: 480px; margin: 0 0 10px 0;">
-            Abre el escáner en tu teléfono móvil apuntando a esta Mesa. Cada foto tomada se proyectará aquí automáticamente para su auditoría y corrección.
+
+        <h2 style="font-size: 24px; margin: 0 0 8px 0; color: #fff;">
+            Esperando fotografía desde el escáner del celular...
+        </h2>
+        <p style="color: var(--muted); font-size: 14px; max-width: 520px; margin: 0 0 16px 0;">
+            Apunta la cámara del celular a la hoja del alumno. Se analizará en <b>2.5 segundos</b> y se proyectará automáticamente en esta Mesa para su auditoría y corrección.
         </p>
+
+        <!-- BOTÓN DEMO DE PRUEBA RÁPIDA (REQUERIDO) -->
+        <div style="margin-bottom: 20px;">
+            <button type="button" class="btn-demo-test" onclick="cargarExamenDemo()">
+                🧪 Cargar Examen de Demostración (Para Probar la Mesa)
+            </button>
+            <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                Carga un examen con respuestas reales para probar las 4 secciones y recalificación en vivo sin celular.
+            </div>
+        </div>
 
         <!-- CÓDIGO QR PARA CELULAR -->
         <div id="qrCodeContainer">
             <img class="qr-box-img" id="qrCodeImg" alt="QR Escáner Celular"
-                src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=<?php echo urlencode('https://' . ($_SERVER['HTTP_HOST'] ?? 'calificador.lumieresocial.com') . '/escaner_mesa.php?mesa=' . $mesaInicial); ?>">
+                src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=<?php echo urlencode('https://' . $hostActual . '/escaner_mesa.php?mesa=' . $mesaInicial); ?>">
         </div>
 
-        <div style="font-size: 13px; color: #38bdf8; font-weight: 700; margin-bottom: 20px;">
-            O abre en el celular: <u>https://<?php echo $_SERVER['HTTP_HOST'] ?? 'calificador.lumieresocial.com'; ?>/escaner_mesa.php?mesa=<?php echo $mesaInicial; ?></u>
+        <div style="font-size: 13px; color: #38bdf8; font-weight: 700; margin-bottom: 22px;">
+            O abre en el navegador del celular:<br>
+            <a href="https://<?php echo $hostActual; ?>/escaner_mesa.php?mesa=<?php echo $mesaInicial; ?>" target="_blank" style="color: #38bdf8; text-decoration: underline;">
+                https://<?php echo $hostActual; ?>/escaner_mesa.php?mesa=<?php echo $mesaInicial; ?>
+            </a>
         </div>
 
         <!-- UPLOAD DIRECTO DESDE PC -->
-        <div style="border-top: 1px solid var(--border); padding-top: 18px; width: 100%; max-width: 400px;">
+        <div style="border-top: 1px solid var(--border); padding-top: 18px; width: 100%; max-width: 440px;">
             <input type="file" id="inputFotoDirectaPC" accept="image/*" style="display: none;" onchange="subirFotoDirectaPC(this)">
             <button type="button" class="tool-btn" style="padding: 10px 18px; font-size: 13px;" onclick="document.getElementById('inputFotoDirectaPC').click()">
-                📂 O subir fotografía desde esta computadora
+                📂 O subir fotografía de examen desde esta computadora
             </button>
         </div>
     </div>
 
     <!-- ESPACIO DE TRABAJO A PANTALLA DIVIDIDA (CUANDO HAY EXAMEN) -->
-    <div id="workspaceExamen" class="workspace-split" style="display: none;">
+    <div id="workspaceExamen" class="workspace-split">
 
         <!-- COLUMNA IZQUIERDA: VISOR DE FOTOGRAFÍA -->
         <div class="photo-viewer-card">
@@ -561,7 +802,18 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
                 </div>
             </div>
             <div class="photo-stage" id="photoStage">
-                <img id="imgExamen" class="photo-img" src="" alt="Examen del alumno">
+                <img id="imgExamen" class="photo-img" src="" alt="Examen del alumno" style="display:none;">
+                <div id="demoSheetPlaceholder" class="demo-sheet-placeholder" style="display:none;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">📝</div>
+                    <div style="font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 4px;">Examen de Demostración</div>
+                    <div style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Simulando lectura digital de 125 reactivos PAA</div>
+                    <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 10px; font-size: 11px; text-align: left; color: #cbd5e1;">
+                        &bull; <b>Lectura</b>: 45 preguntas<br>
+                        &bull; <b>Redacción</b>: 25 preguntas<br>
+                        &bull; <b>Matemáticas 1</b>: 45 preguntas múltiple<br>
+                        &bull; <b>Matemáticas 2</b>: 10 cuadrículas (Grid)
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -569,83 +821,159 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
         <div class="audit-card">
             <!-- ENCABEZADO DEL ALUMNO -->
             <div class="student-header">
-                <div>
+                <div style="flex: 1; min-width: 250px;">
                     <div style="font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase;">
-                        Mesa <?php echo $mesaInicial; ?> &bull; Auditoría Rápida de Examen
+                        Mesa <?php echo $mesaInicial; ?> &bull; Auditoría Rápida PAA
                     </div>
-                    <div class="student-name-box" style="margin-top: 4px;">
-                        <input type="text" id="inputNombreAlumno" class="student-name-input" value="ALUMNO DETECTADO" placeholder="Nombre completo">
+                    <div style="margin-top: 4px;">
+                        <input type="text" id="inputNombreAlumno" class="student-name-input" value="ALUMNO DETECTADO" placeholder="Nombre completo del alumno">
                     </div>
                 </div>
                 <div style="text-align: right; font-size: 12px; color: var(--muted);">
-                    <div>IA OMR: <b id="lblTiempoIa" style="color: #38bdf8;">2.4s</b></div>
-                    <div id="lblHoraRecepcion" style="font-size: 11px;">14:30:10</div>
+                    <div>IA OMR: <b id="lblTiempoIa" style="color: #38bdf8;">2.1s</b></div>
+                    <div id="lblHoraRecepcion" style="font-size: 11px; color: #64748b;">—</div>
                 </div>
             </div>
 
-            <!-- TARJETA DE RESULTADOS PRELIMINARES -->
-            <div class="score-preview-box">
-                <div class="score-preview-header">
-                    <div>
-                        <div style="font-size: 11px; color: #cbd5e1; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
-                            Puntaje PAA Preliminar
-                        </div>
-                        <div class="score-total-val" id="lblPuntajePaaTotal">1,210</div>
+            <!-- =======================================================
+                 LAS 4 TARJETAS PRINCIPALES DE RESULTADOS PAA
+                 (Lectura y Redacción 710, Matemáticas 800, Total PAA, Promedio)
+                 ======================================================= -->
+            <div class="scores-quad-grid">
+                <!-- 1. LECTURA Y REDACCIÓN -->
+                <div class="score-quad-card card-verbal">
+                    <div class="score-quad-tag">
+                        <span>Lectura + Redacción</span>
+                        <span style="color:#38bdf8;">Verbal</span>
                     </div>
-                    <div style="display: flex; gap: 8px;">
-                        <div style="text-align: right;">
-                            <span style="color: #34d399; font-weight: 800; font-size: 18px;" id="lblTotalAciertos">96</span>
-                            <div style="font-size: 11px; color: var(--muted);">Aciertos</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <span style="color: #ef4444; font-weight: 800; font-size: 18px;" id="lblTotalErrores">19</span>
-                            <div style="font-size: 11px; color: var(--muted);">Errores</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <span style="color: #94a3b8; font-weight: 800; font-size: 18px;" id="lblTotalOmitidas">10</span>
-                            <div style="font-size: 11px; color: var(--muted);">Omitidas</div>
-                        </div>
+                    <div class="score-quad-val" style="color: #38bdf8;">
+                        <span id="lblPaaVerbal">710</span>
+                        <span class="pts-unit">/ 800 pts</span>
+                    </div>
+                    <div class="score-quad-sub">
+                        <b id="lblAciertosVerbal" style="color:#fff;">61</b> / 70 aciertos
                     </div>
                 </div>
 
-                <div class="score-subbars">
-                    <div>Verbal (Lectura + Redacción): <b id="lblPaaVerbal" style="color: #38bdf8;">610 pts</b> (<span id="lblAciertosVerbal">52</span> aciertos)</div>
-                    <div>Matemáticas 1 y 2: <b id="lblPaaMate" style="color: #fbbf24;">600 pts</b> (<span id="lblAciertosMate">44</span> aciertos)</div>
+                <!-- 2. MATEMÁTICAS (1 Y 2) -->
+                <div class="score-quad-card card-mate">
+                    <div class="score-quad-tag">
+                        <span>Matemáticas 1 y 2</span>
+                        <span style="color:#fbbf24;">Mate</span>
+                    </div>
+                    <div class="score-quad-val" style="color: #fbbf24;">
+                        <span id="lblPaaMate">800</span>
+                        <span class="pts-unit">/ 800 pts</span>
+                    </div>
+                    <div class="score-quad-sub">
+                        <b id="lblAciertosMate" style="color:#fff;">55</b> / 55 aciertos
+                    </div>
+                </div>
+
+                <!-- 3. PUNTAJE TOTAL PAA -->
+                <div class="score-quad-card card-total">
+                    <div class="score-quad-tag">
+                        <span>Puntaje Total PAA</span>
+                        <span style="color:#10b981;">Escala</span>
+                    </div>
+                    <div class="score-quad-val" style="color: #10b981;">
+                        <span id="lblPuntajePaaTotal">1,510</span>
+                        <span class="pts-unit">/ 1600 pts</span>
+                    </div>
+                    <div class="score-quad-sub">
+                        <b id="lblTotalAciertos" style="color:#fff;">116</b> / 125 reactivos
+                    </div>
+                </div>
+
+                <!-- 4. PROMEDIO DEL EXAMEN (OFICIAL 0-100) -->
+                <div class="score-quad-card card-promedio">
+                    <div class="score-quad-tag">
+                        <span>Promedio Examen</span>
+                        <span style="color:#c084fc;">UdeG/Lumière</span>
+                    </div>
+                    <div class="score-quad-val" style="color: #c084fc;">
+                        <span id="lblPuntajePromedio100">92.5</span>
+                        <span class="pts-unit">/ 100</span>
+                    </div>
+                    <div class="score-quad-sub">
+                        Oficial (Escala 100)
+                    </div>
                 </div>
             </div>
 
-            <!-- FILTROS DE REACTIVOS (ERRORES PRIMERO) -->
+            <!-- BARRA DE RESUMEN DE CONTEOS Y ESTADO DE RECALCULACIÓN -->
+            <div class="counters-bar">
+                <div style="display: flex; gap: 14px; align-items: center;">
+                    <span style="color: #34d399;">🟢 <b id="countAciertosTotal">116</b> Aciertos</span>
+                    <span style="color: #f87171;">🔴 <b id="countErroresTotal">7</b> Errores</span>
+                    <span style="color: #94a3b8;">⚪ <b id="countOmitidasTotal">2</b> Omitidas</span>
+                </div>
+                <div id="lblRecalcStatus" style="display: none;" class="recalc-pill">
+                    ⚡ Recalculando...
+                </div>
+            </div>
+
+            <!-- =======================================================
+                 LAS 4 PESTAÑAS DE SECCIONES + VER TODAS
+                 1. Lectura (1-45)
+                 2. Redacción (1-25)
+                 3. Matemáticas 1 (1-45 Opción múltiple)
+                 4. Matemáticas 2 (46-55 Grid / Cuadrícula)
+                 ======================================================= -->
+            <div class="sections-tabs-row" id="sectionsTabsRow">
+                <button type="button" class="sec-tab-btn active" id="tabSec_lectura" onclick="cambiarSeccion('lectura')">
+                    <span>📖 1. Lectura (1-45)</span>
+                    <span class="sec-tab-pill" id="pillAciertos_lectura">0/45</span>
+                </button>
+                <button type="button" class="sec-tab-btn" id="tabSec_redaccion" onclick="cambiarSeccion('redaccion')">
+                    <span>✍️ 2. Redacción (1-25)</span>
+                    <span class="sec-tab-pill" id="pillAciertos_redaccion">0/25</span>
+                </button>
+                <button type="button" class="sec-tab-btn" id="tabSec_matematicas_1" onclick="cambiarSeccion('matematicas_1')">
+                    <span>📐 3. Matemáticas 1 (1-45)</span>
+                    <span class="sec-tab-pill" id="pillAciertos_matematicas_1">0/45</span>
+                </button>
+                <button type="button" class="sec-tab-btn" id="tabSec_matematicas_2" onclick="cambiarSeccion('matematicas_2')">
+                    <span>🔢 4. Matemáticas 2 (46-55 Grid)</span>
+                    <span class="sec-tab-pill" id="pillAciertos_matematicas_2">0/10</span>
+                </button>
+                <button type="button" class="sec-tab-btn" id="tabSec_todas" onclick="cambiarSeccion('todas')">
+                    <span>📋 Ver Todo (125)</span>
+                </button>
+            </div>
+
+            <!-- FILTROS RÁPIDOS DE REACTIVOS -->
             <div class="filters-row">
                 <button type="button" class="filter-chip danger-chip active" id="chipErrores" onclick="filtrarReactivos('errores')">
-                    🔴 Solo Errores (<span id="countErrores">0</span>)
+                    🔴 Solo Errores (<span id="countErroresChip">0</span>)
                 </button>
                 <button type="button" class="filter-chip" id="chipOmitidas" onclick="filtrarReactivos('omitidas')">
-                    ⚪ Omitidas (<span id="countOmitidas">0</span>)
+                    ⚪ Omitidas (<span id="countOmitidasChip">0</span>)
                 </button>
-                <button type="button" class="filter-chip" id="chipAciertos" onclick="filtrarReactivos('aciertos')">
-                    🟢 Aciertos (<span id="countAciertos">0</span>)
+                <button type="button" class="filter-chip success-chip" id="chipAciertos" onclick="filtrarReactivos('aciertos')">
+                    🟢 Aciertos (<span id="countAciertosChip">0</span>)
                 </button>
                 <button type="button" class="filter-chip" id="chipTodos" onclick="filtrarReactivos('todos')">
-                    📋 Todos (125)
+                    Mostrar Todos
                 </button>
             </div>
 
-            <!-- LISTA INTERACTIVA DE REACTIVOS -->
+            <!-- LISTA INTERACTIVA DE REACTIVOS DE LA SECCIÓN ACTIVA -->
             <div id="listaReactivos" class="questions-list">
-                <!-- Generado dinámicamente -->
+                <!-- Se llena dinámicamente con JavaScript -->
             </div>
 
             <!-- BARRA INFERIOR DE ACCIONES -->
             <div class="actions-footer">
                 <button type="button" class="btn-descartar" onclick="descartarMesa()">
-                    🗑️ Descartar sin Guardar
+                    🗑️ Descartar
                 </button>
                 <div style="display: flex; gap: 8px;">
                     <button type="button" class="tool-btn" onclick="copiarLigaExamen()" title="Copiar enlace directo de este examen">
-                        🔗 Copiar Enlace
+                        🔗 Copiar Liga
                     </button>
                     <button type="button" class="btn-sellar" id="btnSellar" onclick="sellarExamenDefinitivo()">
-                        💾 Sellar y Guardar Definitivo
+                        💾 Sellar Definitivo
                     </button>
                 </div>
             </div>
@@ -653,17 +981,26 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
 
     </div>
 
+    <!-- SCRIPT PRINCIPAL DE LA MESA -->
     <script>
         const MESA_NUM = <?php echo $mesaInicial; ?>;
         const ID_DIRECTO = "<?php echo addslashes($idDirecto); ?>";
 
         let examenActual = null;
-        let respuestasTrabajo = {};
-        let filtroActivo = 'errores';
+        let respuestasTrabajo = {
+            lectura: {},
+            redaccion: {},
+            matematicas: {}
+        };
+
+        let seccionActiva = 'lectura'; // 'lectura', 'redaccion', 'matematicas_1', 'matematicas_2', 'todas'
+        let filtroActivo = 'errores'; // 'errores', 'omitidas', 'aciertos', 'todos'
+
         let zoomNivel = 1.0;
         let rotacionGrados = 0;
         let lastExamId = '';
         let pollingTimer = null;
+        let recalcularTimeout = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             if (ID_DIRECTO) {
@@ -676,6 +1013,7 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
         // 1. POLLING DE LA MESA EN TIEMPO REAL
         function iniciarPollingMesa() {
             verificarEstadoMesa();
+            if (pollingTimer) clearInterval(pollingTimer);
             pollingTimer = setInterval(verificarEstadoMesa, 1500);
         }
 
@@ -692,7 +1030,7 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
                     mostrarStandby();
                 }
             } catch(e) {
-                console.warn('Error polling mesa:', e);
+                console.warn('Error en polling de mesa:', e);
             }
         }
 
@@ -703,7 +1041,7 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
                 if (data.exito && data.examen) {
                     renderExamenEnMesa(data.examen);
                 } else {
-                    alert('No se pudo cargar el examen especificado.');
+                    alert('No se encontró el examen especificado o ya fue archivado.');
                     mostrarStandby();
                 }
             } catch(e) {
@@ -711,62 +1049,166 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             }
         }
 
+        // CARGAR EXAMEN DE DEMOSTRACIÓN (Uno de los requerimientos clave)
+        async function cargarExamenDemo() {
+            try {
+                const res = await fetch(`api_mesas.php?accion=cargar_ejemplo&mesa=${MESA_NUM}`);
+                const data = await res.json();
+                if (data.exito && data.examen) {
+                    renderExamenEnMesa(data.examen);
+                } else {
+                    alert('No se pudo cargar el examen de demostración.');
+                }
+            } catch(e) {
+                alert('Error al conectar con la API de Mesas.');
+            }
+        }
+
         function mostrarStandby() {
             document.getElementById('pantallaStandby').style.display = 'flex';
             document.getElementById('workspaceExamen').style.display = 'none';
-            document.getElementById('lblMesaStatus').textContent = `Mesa ${MESA_NUM} lista (Esperando foto)`;
+            document.getElementById('lblMesaStatus').textContent = `Mesa ${MESA_NUM} Conectada`;
         }
 
+        // 2. RENDERIZAR EXAMEN EN LA MESA
         function renderExamenEnMesa(examen) {
             examenActual = examen;
-            lastExamId = examen.id;
+            lastExamId = examen.id || '';
             respuestasTrabajo = JSON.parse(JSON.stringify(examen.respuestas || {}));
+            if (!respuestasTrabajo.lectura) respuestasTrabajo.lectura = {};
+            if (!respuestasTrabajo.redaccion) respuestasTrabajo.redaccion = {};
+            if (!respuestasTrabajo.matematicas) respuestasTrabajo.matematicas = {};
 
             document.getElementById('pantallaStandby').style.display = 'none';
             document.getElementById('workspaceExamen').style.display = 'grid';
-            document.getElementById('lblMesaStatus').textContent = `Mesa ${MESA_NUM}: Examen cargado`;
+            document.getElementById('lblMesaStatus').textContent = `Mesa ${MESA_NUM}: Examen Activo`;
 
-            // Cargar imagen
+            // Visor de foto
             const img = document.getElementById('imgExamen');
-            img.src = examen.foto_url || `uploads/${examen.foto_archivo}`;
-            resetFoto();
+            const placeholder = document.getElementById('demoSheetPlaceholder');
 
-            // Metadatos
-            document.getElementById('inputNombreAlumno').value = examen.nombre_alumno || 'ALUMNO REGISTRADO';
-            document.getElementById('lblTiempoIa').textContent = (examen.duracion_ia || '2.4') + 's';
+            if (examen.foto_archivo || examen.foto_url) {
+                img.src = examen.foto_url || `uploads/${examen.foto_archivo}`;
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+                resetFoto();
+            } else {
+                img.style.display = 'none';
+                placeholder.style.display = 'block';
+            }
+
+            // Metadatos del Alumno
+            document.getElementById('inputNombreAlumno').value = examen.nombre_alumno || 'ALUMNO DETECTADO';
+            document.getElementById('lblTiempoIa').textContent = (examen.duracion_ia || '2.1') + 's';
             document.getElementById('lblHoraRecepcion').textContent = examen.fecha || '';
 
-            // Calificación
+            // Actualizar indicadores numéricos oficiales
             actualizarIndicadoresCalificacion(examen.calificacion);
 
-            // Renderizar lista interactiva con el filtro actual (errores primero)
+            // Renderizar la lista de reactivos de la sección actual
             renderListaReactivos();
         }
 
+        // 3. ACTUALIZAR LAS 4 TARJETAS DE PUNTAJE Y CONTADORES
         function actualizarIndicadoresCalificacion(cal) {
             if (!cal) return;
-            document.getElementById('lblPuntajePaaTotal').textContent = cal.paa_total_escala || 0;
-            document.getElementById('lblTotalAciertos').textContent = cal.total_aciertos || 0;
-            const errores = (cal.total_preguntas_evaluadas || 125) - (cal.total_aciertos || 0);
-            document.getElementById('lblTotalErrores').textContent = Math.max(0, errores);
 
-            let omitidas = 0;
-            let aciertos = 0;
-            let errs = 0;
-            (cal.secciones || []).forEach(s => {
-                omitidas += s.omitidas || 0;
-                aciertos += s.aciertos || 0;
-                errs += s.errores || 0;
+            // 1. Lectura y Redacción (Verbal PAA)
+            const verbal = cal.paa_verbal_escala || 200;
+            const aciertosVerbal = cal.aciertos_verbal || 0;
+            document.getElementById('lblPaaVerbal').textContent = verbal;
+            document.getElementById('lblAciertosVerbal').textContent = aciertosVerbal;
+
+            // 2. Matemáticas (1 y 2)
+            const mate = cal.paa_mate_escala || 200;
+            const aciertosMate = cal.aciertos_mate || 0;
+            document.getElementById('lblPaaMate').textContent = mate;
+            document.getElementById('lblAciertosMate').textContent = aciertosMate;
+
+            // 3. Puntaje Total PAA
+            const total = cal.paa_total_escala || (verbal + mate);
+            const aciertosTotal = cal.total_aciertos || 0;
+            document.getElementById('lblPuntajePaaTotal').textContent = Number(total).toLocaleString();
+            document.getElementById('lblTotalAciertos').textContent = aciertosTotal;
+
+            // 4. Promedio del Examen (Escala 100 UdeG/Lumière)
+            const promedio100 = (cal.puntaje_escala_100 !== undefined)
+                ? Number(cal.puntaje_escala_100).toFixed(1)
+                : ((total - 400) / 12).toFixed(1);
+            document.getElementById('lblPuntajePromedio100').textContent = promedio100;
+
+            // Conteo global de Errores y Omitidas
+            const totalPreguntas = cal.total_preguntas_evaluadas || 125;
+            let totalOmitidas = 0;
+            let totalErrores = 0;
+
+            // Leer secciones del objeto cal.secciones de forma segura
+            const secObj = cal.secciones || {};
+            const secArray = Array.isArray(secObj) ? secObj : Object.values(secObj);
+
+            secArray.forEach(s => {
+                totalOmitidas += (s.omitidas || 0);
+                totalErrores += (s.errores || 0);
             });
-            document.getElementById('lblTotalOmitidas').textContent = omitidas;
-            document.getElementById('countErrores').textContent = errs;
-            document.getElementById('countOmitidas').textContent = omitidas;
-            document.getElementById('countAciertos').textContent = aciertos;
 
-            document.getElementById('lblPaaVerbal').textContent = (cal.paa_verbal_escala || 0) + ' pts';
-            document.getElementById('lblAciertosVerbal').textContent = cal.aciertos_verbal || 0;
-            document.getElementById('lblPaaMate').textContent = (cal.paa_mate_escala || 0) + ' pts';
-            document.getElementById('lblAciertosMate').textContent = cal.aciertos_mate || 0;
+            // Si por alguna razón errores no viene explícito, deducirlo
+            if (totalErrores === 0 && (totalPreguntas - aciertosTotal - totalOmitidas) > 0) {
+                totalErrores = Math.max(0, totalPreguntas - aciertosTotal - totalOmitidas);
+            }
+
+            document.getElementById('countAciertosTotal').textContent = aciertosTotal;
+            document.getElementById('countErroresTotal').textContent = totalErrores;
+            document.getElementById('countOmitidasTotal').textContent = totalOmitidas;
+
+            document.getElementById('countErroresChip').textContent = totalErrores;
+            document.getElementById('countOmitidasChip').textContent = totalOmitidas;
+            document.getElementById('countAciertosChip').textContent = aciertosTotal;
+
+            // Actualizar pills de las 4 secciones
+            actualizarPillsSecciones(cal);
+        }
+
+        function actualizarPillsSecciones(cal) {
+            if (!cal || !cal.secciones) return;
+            const secs = cal.secciones;
+
+            // Lectura
+            if (secs.lectura) {
+                const el = document.getElementById('pillAciertos_lectura');
+                if (el) el.textContent = `${secs.lectura.aciertos || 0}/${secs.lectura.total_clave || 45}`;
+            }
+
+            // Redacción
+            if (secs.redaccion) {
+                const el = document.getElementById('pillAciertos_redaccion');
+                if (el) el.textContent = `${secs.redaccion.aciertos || 0}/${secs.redaccion.total_clave || 25}`;
+            }
+
+            // Matemáticas 1 y 2
+            if (secs.matematicas && secs.matematicas.detalles) {
+                const detalles = secs.matematicas.detalles;
+                const m1 = detalles.filter(d => parseInt(d.num, 10) <= 45);
+                const m2 = detalles.filter(d => parseInt(d.num, 10) >= 46);
+
+                const acM1 = m1.filter(d => d.estado === 'acierto').length;
+                const acM2 = m2.filter(d => d.estado === 'acierto').length;
+
+                const el1 = document.getElementById('pillAciertos_matematicas_1');
+                if (el1) el1.textContent = `${acM1}/${m1.length || 45}`;
+
+                const el2 = document.getElementById('pillAciertos_matematicas_2');
+                if (el2) el2.textContent = `${acM2}/${m2.length || 10}`;
+            }
+        }
+
+        // 4. MANEJO DE PESTAÑAS DE SECCIONES (Lectura, Redacción, Mate 1, Mate 2, Todas)
+        function cambiarSeccion(sec) {
+            seccionActiva = sec;
+            document.querySelectorAll('.sec-tab-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById('tabSec_' + sec);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            renderListaReactivos();
         }
 
         function filtrarReactivos(tipo) {
@@ -780,50 +1222,113 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             renderListaReactivos();
         }
 
+        // 5. RENDERIZADO MODULAR DE LAS 4 SECCIONES Y SUS RESPUESTAS
         function renderListaReactivos() {
             const container = document.getElementById('listaReactivos');
             if (!container || !examenActual || !examenActual.calificacion) return;
 
-            const secciones = examenActual.calificacion.secciones || [];
+            const cal = examenActual.calificacion;
+            const secs = cal.secciones || {};
+
+            // Construcción del paquete de las 4 secciones
+            const seccionesDef = [
+                {
+                    id: 'lectura',
+                    nombre: '📖 Sección 1: Lectura (Reactivos 1 al 45)',
+                    secKey: 'lectura',
+                    items: secs.lectura?.detalles || []
+                },
+                {
+                    id: 'redaccion',
+                    nombre: '✍️ Sección 2: Redacción (Reactivos 1 al 25)',
+                    secKey: 'redaccion',
+                    items: secs.redaccion?.detalles || []
+                },
+                {
+                    id: 'matematicas_1',
+                    nombre: '📐 Sección 3: Matemáticas 1 - Opción Múltiple (Reactivos 1 al 45)',
+                    secKey: 'matematicas',
+                    items: (secs.matematicas?.detalles || []).filter(item => parseInt(item.num, 10) <= 45)
+                },
+                {
+                    id: 'matematicas_2',
+                    nombre: '🔢 Sección 4: Matemáticas 2 - Cuadrícula / Grid (Reactivos 46 al 55)',
+                    secKey: 'matematicas',
+                    items: (secs.matematicas?.detalles || []).filter(item => parseInt(item.num, 10) >= 46)
+                }
+            ];
+
             let html = '';
+            let totalRenderizados = 0;
 
-            secciones.forEach(sec => {
-                const secClave = sec.clave;
-                const detalle = sec.detalle || [];
+            seccionesDef.forEach(secDef => {
+                // Si estamos en una pestaña individual y no coincide, saltarla
+                if (seccionActiva !== 'todas' && seccionActiva !== secDef.id) {
+                    return;
+                }
 
-                detalle.forEach(item => {
+                // Filtrar reactivos de esta sección
+                const itemsFiltrados = secDef.items.filter(item => {
+                    const estado = item.estado; // 'acierto', 'error', 'omitida'
+                    if (filtroActivo === 'errores' && estado !== 'error') return false;
+                    if (filtroActivo === 'omitidas' && estado !== 'omitida') return false;
+                    if (filtroActivo === 'aciertos' && estado !== 'acierto') return false;
+                    return true;
+                });
+
+                if (itemsFiltrados.length === 0 && seccionActiva === 'todas') {
+                    return; // No imprimir encabezado si en "todas" no hay nada con este filtro
+                }
+
+                // Si estamos viendo "todas" o hay elementos, agregar encabezado de sección
+                if (seccionActiva === 'todas' || itemsFiltrados.length > 0) {
+                    html += `
+                        <div class="section-separator-title">
+                            <span>${secDef.nombre}</span>
+                            <span style="font-size: 11px; color: #cbd5e1;">${itemsFiltrados.length} reactivos mostrados</span>
+                        </div>
+                    `;
+                }
+
+                itemsFiltrados.forEach(item => {
+                    totalRenderizados++;
                     const num = item.num;
                     const estado = item.estado; // 'acierto', 'error', 'omitida'
-                    const marcada = respuestasTrabajo[secClave]?.[num] || '';
-                    const correcta = item.correcta;
-
-                    // Aplicar filtro
-                    if (filtroActivo === 'errores' && estado !== 'error') return;
-                    if (filtroActivo === 'omitidas' && estado !== 'omitida') return;
-                    if (filtroActivo === 'aciertos' && estado !== 'acierto') return;
+                    const secKey = secDef.secKey;
+                    const marcada = respuestasTrabajo[secKey]?.[num] || '';
+                    const correcta = item.correcta || '';
 
                     const rowClass = (estado === 'acierto') ? 'row-acierto' : ((estado === 'error') ? 'row-error' : 'row-omitida');
                     const tagClass = (estado === 'acierto') ? 'tag-acierto' : ((estado === 'error') ? 'tag-error' : 'tag-omitida');
-                    const tagTxt = (estado === 'acierto') ? '🟢 Correcto' : ((estado === 'error') ? `🔴 Fallada (Era ${correcta})` : '⚪ Omitida');
+                    const tagTxt = (estado === 'acierto') ? '🟢 Correcto' : ((estado === 'error') ? `🔴 Incorrecto (Era ${correcta})` : `⚪ En Blanco (Era ${correcta})`);
 
-                    const esGridMate = (secClave === 'matematicas' && parseInt(num, 10) >= 46 && parseInt(num, 10) <= 55);
+                    const esGrid = (secDef.id === 'matematicas_2' || (secKey === 'matematicas' && parseInt(num, 10) >= 46));
 
-                    if (esGridMate) {
+                    if (esGrid) {
+                        // REACTIVO ABIERTO / CUADRÍCULA
                         html += `
-                            <div class="q-row ${rowClass}" id="qRow_${secClave}_${num}">
+                            <div class="q-row ${rowClass}" id="qRow_${secKey}_${num}">
                                 <div class="q-left-info">
                                     <span class="q-badge-num">#${num}</span>
                                     <span class="q-status-tag ${tagClass}">${tagTxt}</span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 11px; color: #fbbf24;">Clave: <b>${correcta}</b></span>
-                                    <input type="text" value="${escapeHtml(marcada)}" placeholder="—" maxlength="8"
-                                        style="width: 80px; padding: 4px 6px; font-size: 13px; font-weight: 800; text-align: center; background: #0f172a; border: 1px solid #fbbf24; color: #fff; border-radius: 6px;"
-                                        onchange="corregirRespuestaDirecta('${secClave}', '${num}', this.value)">
+                                    <span style="font-size: 11px; color: #fbbf24; font-weight: 700;">
+                                        Clave: <b>${escapeHtml(correcta)}</b>
+                                    </span>
+                                    <input type="text" class="grid-input-audit" value="${escapeHtml(marcada)}"
+                                        placeholder="—" maxlength="8"
+                                        onchange="corregirRespuestaDirecta('${secKey}', '${num}', this.value)"
+                                        title="Escribe el número o fracción corregido">
+                                    <button type="button" class="tool-btn" style="padding: 4px 8px; font-size: 11px;"
+                                        onclick="corregirRespuestaDirecta('${secKey}', '${num}', '')" title="Borrar y dejar en blanco">
+                                        ⚪
+                                    </button>
                                 </div>
                             </div>
                         `;
                     } else {
+                        // REACTIVO DE OPCIÓN MÚLTIPLE (A, B, C, D)
                         const opts = ['A', 'B', 'C', 'D'];
                         const btns = opts.map(opt => {
                             const isSelected = (marcada === opt);
@@ -831,18 +1336,23 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
                             let cls = 'bubble-btn-audit';
                             if (isSelected) cls += ' active';
                             if (isKey) cls += ' is-correct-key';
-                            return `<button type="button" class="${cls}" onclick="corregirRespuestaDirecta('${secClave}', '${num}', '${opt}')" title="${isKey ? 'Clave correcta oficial' : ''}">${opt}</button>`;
+                            return `<button type="button" class="${cls}"
+                                onclick="corregirRespuestaDirecta('${secKey}', '${num}', '${opt}')"
+                                title="${isKey ? 'Clave oficial' : ''}">${opt}</button>`;
                         }).join('');
 
                         html += `
-                            <div class="q-row ${rowClass}" id="qRow_${secClave}_${num}">
+                            <div class="q-row ${rowClass}" id="qRow_${secKey}_${num}">
                                 <div class="q-left-info">
                                     <span class="q-badge-num">#${num}</span>
                                     <span class="q-status-tag ${tagClass}">${tagTxt}</span>
                                 </div>
                                 <div class="q-bubbles-box">
                                     ${btns}
-                                    <button type="button" class="bubble-btn-audit ${!marcada ? 'active' : ''}" style="width:24px; height:24px; font-size:10px;" onclick="corregirRespuestaDirecta('${secClave}', '${num}', '')" title="Omitir">⚪</button>
+                                    <button type="button" class="bubble-btn-audit ${!marcada ? 'active' : ''}"
+                                        style="width: 26px; height: 26px; font-size: 10px;"
+                                        onclick="corregirRespuestaDirecta('${secKey}', '${num}', '')"
+                                        title="Omitir (dejar en blanco)">⚪</button>
                                 </div>
                             </div>
                         `;
@@ -850,41 +1360,87 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
                 });
             });
 
-            if (!html) {
-                html = `<div style="text-align: center; padding: 30px; color: var(--muted); font-size: 13px;">No hay reactivos en esta categoría (${filtroActivo}).</div>`;
+            if (totalRenderizados === 0) {
+                html = `
+                    <div style="text-align: center; padding: 40px 16px; color: var(--muted); font-size: 13px;">
+                        <div style="font-size: 24px; margin-bottom: 6px;">🔍</div>
+                        No hay reactivos que coincidan con la categoría <b>"${filtroActivo}"</b> en esta sección.
+                        <div style="margin-top: 10px;">
+                            <button type="button" class="tool-btn" onclick="filtrarReactivos('todos')">
+                                Mostrar Todos los Reactivos
+                            </button>
+                        </div>
+                    </div>
+                `;
             }
 
             container.innerHTML = html;
         }
 
+        // 6. RECALCULAR EN VIVO AL CORREGIR CUALQUIER RESPUESTA
         async function corregirRespuestaDirecta(sec, num, val) {
-            const clean = val.trim().toUpperCase();
+            const clean = String(val || '').trim().toUpperCase();
             if (!respuestasTrabajo[sec]) respuestasTrabajo[sec] = {};
+
             if (clean === '') {
                 delete respuestasTrabajo[sec][num];
             } else {
                 respuestasTrabajo[sec][num] = clean;
             }
 
-            // Recalcular en backend en tiempo real
-            const formData = new FormData();
-            formData.append('accion', 'recalcular');
-            formData.append('respuestas', JSON.stringify(respuestasTrabajo));
+            // Indicador visual de recálculo
+            mostrarRecalculando(true);
 
-            try {
-                const res = await fetch('api_mesas.php', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.exito && data.calificacion) {
-                    examenActual.calificacion = data.calificacion;
-                    actualizarIndicadoresCalificacion(data.calificacion);
-                    renderListaReactivos();
+            // Cancelar llamadas acumuladas para evitar spam de peticiones
+            if (recalcularTimeout) clearTimeout(recalcularTimeout);
+
+            recalcularTimeout = setTimeout(async () => {
+                const formData = new FormData();
+                formData.append('accion', 'recalcular');
+                formData.append('respuestas', JSON.stringify(respuestasTrabajo));
+
+                try {
+                    const res = await fetch('api_mesas.php', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (data.exito && data.calificacion) {
+                        examenActual.calificacion = data.calificacion;
+                        actualizarIndicadoresCalificacion(data.calificacion);
+                        renderListaReactivos();
+                        mostrarRecalculando(false, true);
+                    } else {
+                        mostrarRecalculando(false, false);
+                    }
+                } catch(e) {
+                    console.warn('Error recalculando en vivo:', e);
+                    mostrarRecalculando(false, false);
                 }
-            } catch(e) {
-                console.warn('Error recalculando:', e);
+            }, 120);
+        }
+
+        function mostrarRecalculando(cargando, exito = true) {
+            const el = document.getElementById('lblRecalcStatus');
+            if (!el) return;
+
+            if (cargando) {
+                el.style.display = 'inline-block';
+                el.className = 'recalc-pill';
+                el.textContent = '⚡ Recalculando...';
+            } else {
+                if (exito) {
+                    el.style.display = 'inline-block';
+                    el.className = 'status-indicator';
+                    el.style.padding = '2px 8px';
+                    el.textContent = '✅ Actualizado';
+                    setTimeout(() => {
+                        el.style.display = 'none';
+                    }, 1200);
+                } else {
+                    el.style.display = 'none';
+                }
             }
         }
 
-        // 2. HERRAMIENTAS DE VISOR DE FOTO (Zoom / Pan / Rotar)
+        // 7. HERRAMIENTAS DE VISOR DE FOTO (Zoom / Pan / Rotar)
         function zoomFoto(delta) {
             zoomNivel = Math.max(0.5, Math.min(3.5, zoomNivel + delta));
             aplicarTransformFoto();
@@ -908,7 +1464,7 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             }
         }
 
-        // 3. SELLAR Y GUARDAR DEFINITIVO
+        // 8. SELLAR Y GUARDAR DEFINITIVO EN BASE DE DATOS
         async function sellarExamenDefinitivo() {
             if (!examenActual) return;
             const nombre = document.getElementById('inputNombreAlumno').value.trim();
@@ -925,7 +1481,7 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             const formData = new FormData();
             formData.append('accion', 'sellar_definitivo');
             formData.append('mesa', MESA_NUM);
-            formData.append('id', examenActual.id);
+            formData.append('id', examenActual.id || '');
             formData.append('nombre_alumno', nombre);
             formData.append('carrera', examenActual.carrera || '');
             formData.append('foto_archivo', examenActual.foto_archivo || '');
@@ -937,7 +1493,7 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
                 const data = await res.json();
 
                 if (data.exito) {
-                    alert(`✅ ¡Examen de ${nombre} sellado y guardado con éxito!\nPuntaje PAA: ${data.puntaje_paa_total} pts (${data.total_aciertos} aciertos).`);
+                    alert(`✅ ¡Examen de ${nombre} sellado con éxito!\nPuntaje PAA Total: ${data.puntaje_paa_total} pts (${data.total_aciertos} aciertos).`);
                     examenActual = null;
                     lastExamId = '';
                     mostrarStandby();
@@ -952,8 +1508,9 @@ $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADM
             }
         }
 
+        // 9. DESCARTAR MESA SIN GUARDAR
         async function descartarMesa() {
-            if (!confirm(`¿Descartar este examen de la Mesa ${MESA_NUM} sin guardar nada en la base de datos?`)) return;
+            if (!confirm(`¿Descartar este examen de la Mesa ${MESA_NUM} sin guardar en la base de datos?`)) return;
 
             const formData = new FormData();
             formData.append('accion', 'limpiar_mesa');

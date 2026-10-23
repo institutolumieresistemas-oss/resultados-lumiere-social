@@ -164,6 +164,77 @@ if ($accion === 'cargar_examen') {
 }
 
 // --------------------------------------------------------------------
+// 3.1 CARGAR EXAMEN DE EJEMPLO/DEMOSTRACIÓN PARA PRUEBAS RÁPIDAS
+// --------------------------------------------------------------------
+if ($accion === 'cargar_ejemplo') {
+    $mesaNum = intval($_POST['mesa'] ?? ($_GET['mesa'] ?? 1));
+    if ($mesaNum < 1 || $mesaNum > 5) $mesaNum = 1;
+
+    $hojaBase = cargar_hoja_base();
+    $respuestasEjemplo = [
+        'lectura' => [],
+        'redaccion' => [],
+        'matematicas' => []
+    ];
+
+    // Lectura (45 reactivos): 39 aciertos, 5 errores, 1 omitida
+    foreach ($hojaBase['lectura'] ?? [] as $k => $v) {
+        $ik = (int)$k;
+        if (in_array($ik, [7, 14, 21, 28, 35])) {
+            $respuestasEjemplo['lectura'][(string)$k] = ($v === 'A' ? 'B' : 'A');
+        } elseif ($ik === 40) {
+            // omitida
+        } else {
+            $respuestasEjemplo['lectura'][(string)$k] = $v;
+        }
+    }
+
+    // Redacción (25 reactivos): 22 aciertos, 2 errores, 1 omitida
+    // Verbal total = 39 + 22 = 61 aciertos (aprox. 710-715 pts PAA)
+    foreach ($hojaBase['redaccion'] ?? [] as $k => $v) {
+        $ik = (int)$k;
+        if (in_array($ik, [5, 18])) {
+            $respuestasEjemplo['redaccion'][(string)$k] = ($v === 'B' ? 'C' : 'B');
+        } elseif ($ik === 24) {
+            // omitida
+        } else {
+            $respuestasEjemplo['redaccion'][(string)$k] = $v;
+        }
+    }
+
+    // Matemáticas 1 y 2 (55 reactivos): 55 aciertos (800 pts PAA perfecto)
+    foreach ($hojaBase['matematicas'] ?? [] as $k => $v) {
+        $respuestasEjemplo['matematicas'][(string)$k] = $v;
+    }
+
+    $calificacion = calificar_examen($respuestasEjemplo);
+    $examId = 'exam_demo_m' . $mesaNum . '_' . time();
+    $payload = [
+        'id' => $examId,
+        'mesa' => $mesaNum,
+        'timestamp' => time(),
+        'fecha' => date('d/m/Y H:i:s'),
+        'duracion_ia' => 2.1,
+        'estado' => 'pendiente_revision',
+        'foto_archivo' => '',
+        'foto_url' => '',
+        'nombre_alumno' => 'JUAN CARLOS LÓPEZ DÍAZ (DEMO)',
+        'carrera' => 'Médico Cirujano',
+        'respuestas' => $respuestasEjemplo,
+        'respuestas_originales_ia' => $respuestasEjemplo,
+        'calificacion' => $calificacion
+    ];
+
+    $mesaFile = MESAS_DIR . '/mesa_' . $mesaNum . '.json';
+    file_put_contents($mesaFile, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+    $examFile = MESAS_DIR . '/' . $examId . '.json';
+    file_put_contents($examFile, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+    responder_mesas_json(['exito' => true, 'examen' => $payload]);
+}
+
+// --------------------------------------------------------------------
 // 4. RECALCULAR CALIFICACIÓN AL CORREGIR RESPUESTAS EN VIVO (PC)
 // --------------------------------------------------------------------
 if ($accion === 'recalcular') {

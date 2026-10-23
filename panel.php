@@ -827,8 +827,8 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                 <span class="tab-badge alert" id="tabBadgeAlert" style="display:none;">!</span>
             </button>
             <button class="tab-btn" id="tabBtnBase" onclick="cambiarPestana('base')">
-                <span>🎯 Hoja Base Oficial (Claves PAA)</span>
-                <span class="tab-badge" id="tabBadgePreguntas">115 Qs</span>
+                <span>🎯 Cargar Hoja Base Oficial (Claves PAA)</span>
+                <span class="tab-badge" id="tabBadgePreguntas">125 Qs</span>
             </button>
         </div>
 
@@ -845,6 +845,12 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                     <button class="filter-btn" data-filter="solicitudes" onclick="setFiltro('solicitudes', this)">⚠️ Solicitudes (<span id="countFiltroSolicitudes">0</span>)</button>
                     <button class="filter-btn" data-filter="aprobados" onclick="setFiltro('aprobados', this)">🟢 ≥ 1000 pts (<span id="countFiltroAprobados">0</span>)</button>
                     <button class="filter-btn" data-filter="modificados" onclick="setFiltro('modificados', this)">✏️ Corregidos Alumno</button>
+                    <a href="captura_manual.php?origen=docente" target="_blank" class="btn btn-primary btn-sm" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 6px 12px; margin-left: 6px; font-size: 13px;">
+                        <span>✍️ Captura Alumno / Examen ↗</span>
+                    </a>
+                    <a href="captura_base.php?token=<?php echo urlencode(ADMIN_PASSWORD); ?>" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 6px 12px; margin-left: 6px; font-size: 13px; background: #0284c7; color: #fff;">
+                        <span>🎯 Cargar Hoja Base ↗</span>
+                    </a>
                 </div>
             </div>
 
@@ -901,6 +907,9 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                         <button type="button" class="btn btn-outline" onclick="document.getElementById('fileHojaBase').click()" style="padding:10px 18px; font-size:14px; border:1px solid var(--border); background:var(--card-surface); color:var(--text);">
                             <span>📁 Subir desde Archivo</span>
                         </button>
+                        <a href="captura_base.php?token=<?php echo urlencode(ADMIN_PASSWORD); ?>" target="_blank" class="btn btn-secondary" style="padding:10px 18px; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:#0284c7; color:#fff; font-weight:700;">
+                            <span>🎙️ Cargar / Dictar en Otra Pestaña ↗</span>
+                        </a>
                     </div>
 
                     <input type="file" id="fileHojaBaseCamara" accept="image/*" capture="environment" style="display:none;" onchange="escanearHojaBaseConIA(this)">
@@ -916,19 +925,41 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
                             <span>✏️ Editor Visual de Respuestas Oficiales</span>
                         </div>
                         <div style="color:var(--muted); font-size:12px; margin-top:4px;">
-                            Haz clic en las burbujas para alternar la clave correcta de cada pregunta.
+                            Haz clic en las burbujas para alternar la clave correcta de cada pregunta o dicta por voz.
                         </div>
                     </div>
-                    <button class="btn btn-primary" onclick="guardarHojaBaseVisual()" id="btnGuardarBase">
-                        <span>💾 Guardar Hoja Base Oficial</span>
-                    </button>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <a href="captura_base.php?token=<?php echo urlencode(ADMIN_PASSWORD); ?>" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:#0284c7; color:#fff; font-weight:700;">
+                            <span>🎙️ Abrir en Nueva Pestaña ↗</span>
+                        </a>
+                        <button class="btn btn-primary" onclick="guardarHojaBaseVisual()" id="btnGuardarBase">
+                            <span>💾 Guardar Hoja Base Oficial</span>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Sub-pestañas por sección -->
-                <div style="display:flex; gap:8px; margin-bottom:16px;">
-                    <button class="filter-btn active" id="btnSecLectura" onclick="cambiarSecClave('lectura')">Lectura (1 - 45)</button>
-                    <button class="filter-btn" id="btnSecRedaccion" onclick="cambiarSecClave('redaccion')">Redacción (1 - 25)</button>
-                    <button class="filter-btn" id="btnSecMate" onclick="cambiarSecClave('matematicas')">Matemáticas (1 - 55)</button>
+                <!-- Barra de Dictado por Voz integrada en el Editor -->
+                <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btnVozPanel" onclick="toggleDictadoVozPanel()" style="background: #0284c7; color: #fff; font-weight: 700; border: none; padding: 8px 14px; cursor: pointer;">
+                            <span id="iconoMicPanel">🎙️</span>
+                            <span id="txtVozPanel">Iniciar Dictado por Voz</span>
+                        </button>
+                        <span id="panelVozEstado" style="display: none; font-size: 13px; color: #38bdf8; font-weight: 600;">
+                            <span class="pulse-dot"></span> Escuchando: <b id="transcripcionPanel" style="color: #fff; font-family: monospace; font-size: 14px; letter-spacing: 1px;">...</b>
+                        </span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted);">
+                        Módulo activo: <b id="lblSecClaveNombre" style="color: #38bdf8;">Lectura (1 - 45)</b>
+                    </div>
+                </div>
+
+                <!-- Sub-pestañas por sección (Lectura, Redacción, Matemáticas 1 y Matemáticas 2) -->
+                <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                    <button type="button" class="filter-btn active" id="btnSecLectura" onclick="cambiarSecClave('lectura')">Lectura (1 - 45)</button>
+                    <button type="button" class="filter-btn" id="btnSecRedaccion" onclick="cambiarSecClave('redaccion')">Redacción (1 - 25)</button>
+                    <button type="button" class="filter-btn" id="btnSecMate1" onclick="cambiarSecClave('matematicas1')">Matemáticas 1 (1 - 45)</button>
+                    <button type="button" class="filter-btn" id="btnSecMate2" onclick="cambiarSecClave('matematicas2')">Matemáticas 2 (46 - 55 Grid)</button>
                 </div>
 
                 <!-- Cuadrícula de Preguntas -->
@@ -1444,7 +1475,18 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
             seccionClaveActual = sec;
             document.getElementById('btnSecLectura').classList.toggle('active', sec === 'lectura');
             document.getElementById('btnSecRedaccion').classList.toggle('active', sec === 'redaccion');
-            document.getElementById('btnSecMate').classList.toggle('active', sec === 'matematicas');
+            document.getElementById('btnSecMate1').classList.toggle('active', sec === 'matematicas1');
+            document.getElementById('btnSecMate2').classList.toggle('active', sec === 'matematicas2');
+
+            const nombres = {
+                lectura: 'Lectura (1 - 45)',
+                redaccion: 'Redacción (1 - 25)',
+                matematicas1: 'Matemáticas 1 (1 - 45)',
+                matematicas2: 'Matemáticas 2 (46 - 55 Grid Abierto)'
+            };
+            const lbl = document.getElementById('lblSecClaveNombre');
+            if (lbl) lbl.textContent = nombres[sec] || sec;
+
             renderEditorClaves();
         }
 
@@ -1453,30 +1495,37 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
             if (!container) return;
 
             const sec = seccionClaveActual;
-            const total = (sec === 'redaccion') ? 25 : (sec === 'matematicas' ? 55 : 45);
-            const respuestas = hojaBaseTrabajo[sec] || {};
+            const secDataKey = (sec === 'matematicas1' || sec === 'matematicas2') ? 'matematicas' : sec;
+            const respuestas = hojaBaseTrabajo[secDataKey] || {};
+
+            let inicio = 1, fin = 45, esGrid = false;
+            if (sec === 'lectura') { inicio = 1; fin = 45; }
+            else if (sec === 'redaccion') { inicio = 1; fin = 25; }
+            else if (sec === 'matematicas1') { inicio = 1; fin = 45; }
+            else if (sec === 'matematicas2') { inicio = 46; fin = 55; esGrid = true; }
 
             let items = [];
-            for (let i = 1; i <= total; i++) {
+            for (let i = inicio; i <= fin; i++) {
                 const actual = respuestas[String(i)] || respuestas[i] || '';
 
-                if (sec === 'matematicas' && i >= 46) {
+                if (esGrid) {
                     items.push(`
-                        <div class="q-item" style="border: 1px solid rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.06); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; align-items: stretch; gap: 4px;">
+                        <div class="q-item" style="border: 1px solid rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.08); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; align-items: stretch; gap: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span class="q-num" style="color: #f59e0b; font-weight: 800; font-size: 12px;">#${i} (Grid Numérico)</span>
+                                <span class="q-num" style="color: #f59e0b; font-weight: 800; font-size: 13px;">#${i}</span>
+                                <span style="color: #fbbf24; font-size: 11px; font-weight: 600;">Respuesta Abierta</span>
                             </div>
-                            <input type="text" value="${escapeHtml(actual)}"
-                                placeholder="ej. 15, 1/2, 22, 0.33"
-                                style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 13px; text-transform: uppercase; font-weight: 700; text-align: center; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px;"
-                                onchange="modificarClaveGrid('${sec}', ${i}, this.value)">
+                            <input type="text" id="inputClaveMat2_${i}" value="${escapeHtml(actual)}"
+                                placeholder="ej. 15, 1/2, 22"
+                                style="width: 100%; box-sizing: border-box; padding: 7px 8px; font-size: 14px; text-transform: uppercase; font-weight: 800; text-align: center; background: #0f172a; border: 1px solid rgba(245, 158, 11, 0.5); color: #fff; border-radius: 6px;"
+                                oninput="modificarClaveGrid('${secDataKey}', ${i}, this.value)">
                         </div>
                     `);
                 } else {
                     const opciones = ['A', 'B', 'C', 'D'];
                     let btns = opciones.map(letra => {
                         const isActive = (actual === letra) ? 'active' : '';
-                        return `<button type="button" class="q-btn ${isActive}" onclick="seleccionarClave('${sec}', ${i}, '${letra}')">${letra}</button>`;
+                        return `<button type="button" class="q-btn ${isActive}" onclick="seleccionarClave('${secDataKey}', ${i}, '${letra}')">${letra}</button>`;
                     }).join('');
 
                     items.push(`
@@ -1489,6 +1538,123 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
             }
 
             container.innerHTML = items.join('');
+        }
+
+        // Dictado por voz en tiempo real integrado en el panel
+        let recVozPanel = null;
+        let dictandoPanel = false;
+
+        function toggleDictadoVozPanel() {
+            if (dictandoPanel) {
+                detenerDictadoVozPanel();
+            } else {
+                iniciarDictadoVozPanel();
+            }
+        }
+
+        function iniciarDictadoVozPanel() {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRec) {
+                alert('Tu navegador no soporta dictado por voz nativo. Recomendamos Google Chrome o Safari.');
+                return;
+            }
+
+            try {
+                if (recVozPanel) recVozPanel.abort();
+                recVozPanel = new SpeechRec();
+                recVozPanel.lang = 'es-MX';
+                recVozPanel.continuous = true;
+                recVozPanel.interimResults = true;
+
+                dictandoPanel = true;
+                document.getElementById('btnVozPanel').style.background = '#ef4444';
+                document.getElementById('txtVozPanel').textContent = 'Detener Dictado';
+                document.getElementById('panelVozEstado').style.display = 'inline-flex';
+
+                recVozPanel.onresult = function(e) {
+                    let full = '';
+                    for (let i = 0; i < e.results.length; ++i) {
+                        full += e.results[i][0].transcript + ' ';
+                    }
+                    const letras = parsearDictadoALetras(full);
+                    if (letras.length === 0) return;
+
+                    const sec = seccionClaveActual;
+                    const secDataKey = (sec === 'matematicas1' || sec === 'matematicas2') ? 'matematicas' : sec;
+
+                    if (sec === 'matematicas2') {
+                        letras.forEach((val, idx) => {
+                            const num = 46 + idx;
+                            if (num <= 55) {
+                                modificarClaveGrid('matematicas', num, val);
+                                const inp = document.getElementById(`inputClaveMat2_${num}`);
+                                if (inp) inp.value = val;
+                            }
+                        });
+                        document.getElementById('transcripcionPanel').textContent = letras.slice(-5).join(' ');
+                    } else {
+                        const total = (sec === 'redaccion') ? 25 : 45;
+                        letras.forEach((l, idx) => {
+                            const num = idx + 1;
+                            if (num <= total) {
+                                seleccionarClaveDirecta(secDataKey, num, l);
+                            }
+                        });
+                        document.getElementById('transcripcionPanel').textContent = letras.slice(-8).join(' ');
+                    }
+                };
+
+                recVozPanel.onend = function() {
+                    if (dictandoPanel) {
+                        try { recVozPanel.start(); } catch(err) {}
+                    }
+                };
+
+                recVozPanel.start();
+            } catch(e) {
+                detenerDictadoVozPanel();
+            }
+        }
+
+        function detenerDictadoVozPanel() {
+            dictandoPanel = false;
+            if (recVozPanel) {
+                try { recVozPanel.stop(); } catch(e) {}
+                recVozPanel = null;
+            }
+            const btn = document.getElementById('btnVozPanel');
+            if (btn) btn.style.background = '#0284c7';
+            const txt = document.getElementById('txtVozPanel');
+            if (txt) txt.textContent = 'Iniciar Dictado por Voz';
+            const estado = document.getElementById('panelVozEstado');
+            if (estado) estado.style.display = 'none';
+        }
+
+        function seleccionarClaveDirecta(sec, num, letra) {
+            if (!hojaBaseTrabajo[sec]) hojaBaseTrabajo[sec] = {};
+            if (letra === '') {
+                delete hojaBaseTrabajo[sec][String(num)];
+            } else {
+                hojaBaseTrabajo[sec][String(num)] = letra;
+            }
+            renderEditorClaves();
+        }
+
+        function parsearDictadoALetras(texto) {
+            if (!texto) return [];
+            const t = texto.toLowerCase().replace(/[.,;:!?]/g, ' ').trim();
+            const palabras = t.split(/\s+/);
+            const letras = [];
+            for (let p of palabras) {
+                if (!p) continue;
+                if (p === 'a' || p === 'ah' || p === 'ha') letras.push('A');
+                else if (p === 'b' || p === 'be' || p === 've' || p === 'bueno') letras.push('B');
+                else if (p === 'c' || p === 'ce' || p === 'se' || p === 'casa') letras.push('C');
+                else if (p === 'd' || p === 'de' || p === 'dedo' || p === 'dado') letras.push('D');
+                else if (p === 'blanco' || p === 'paso' || p === 'omitida' || p === 'vacio') letras.push('');
+                else if (/^[0-9\/\.]+$/.test(p)) letras.push(p);
+            }
+            return letras;
         }
 
         function modificarClaveGrid(sec, num, val) {
@@ -1520,6 +1686,7 @@ $isLogged = isset($_SESSION['admin_token']) && ($_SESSION['admin_token'] === ADM
             try {
                 const formData = new FormData();
                 formData.append('accion', 'admin_guardar_hoja_base');
+                formData.append('admin_token', '<?php echo ADMIN_PASSWORD; ?>');
                 formData.append('hoja_base', JSON.stringify(hojaBaseTrabajo));
 
                 const resp = await fetch('api_calificar.php', { method: 'POST', body: formData });

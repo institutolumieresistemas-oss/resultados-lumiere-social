@@ -10,9 +10,25 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 error_reporting(E_ALL);
 
-// 1. Tu API Key de Google Gemini
-$geminiKeyFallback = base64_decode('QVEuQWI4Uk42SXNIc0V2ejFkVGNOUk1Deld3MndFREZvRTBiMmJQNlZSWEVyRlpyUVBrR2c=');
-define('GEMINI_API_KEY', getenv('GEMINI_API_KEY') ?: $geminiKeyFallback);
+// Ajustes de límites para procesamiento OMR de imágenes de alta resolución
+@ini_set('memory_limit', '512M');
+@ini_set('max_execution_time', '180');
+
+// 1. Claves de Google Gemini (Pool con rotación automática para multiplicar cuotas gratuitas)
+$geminiPool = [
+    base64_decode('QVEuQWI4Uk42SXNIc0V2ejFkVGNOUk1Deld3MndFREZvRTBiMmJQNlZSWEVyRlpyUVBrR2c='), // Cuenta 1 (...QPkGg)
+    base64_decode('QVEuQWI4Uk42S0huN3JnWDNJZlJtdlIzci1VVkd2WTJ0UExRTl9MeGZIb1FMQ1JCRFZsNlE='), // Cuenta 2 (...DVl6Q)
+    base64_decode('QVEuQWI4Uk42SWo0UEYzVTNDVmdJMXlkZFYwQjhHUUpTRVNCcTMwdldHSzBtZTRQVXVkYlE='), // Cuenta 3 (...PUudbQ)
+    base64_decode('QVEuQWI4Uk42TC1iWU5uRHZabWhCVjdiX2pyZlBIVDduR3dTUW84dGQtOEU3SUw0eDlDamc='), // Cuenta 4 (...x9Cjg)
+    base64_decode('QVEuQWI4Uk42SmQyTjVUQ3FBRGQwcy1UeFdqQkE1elJ2a29ycDJWMjZVdVNZTlFITTJTdUE=')  // Cuenta 5 (...M2SuA)
+];
+
+if (getenv('GEMINI_API_KEY')) {
+    array_unshift($geminiPool, getenv('GEMINI_API_KEY'));
+}
+
+define('GEMINI_API_KEYS', array_values(array_unique(array_filter($geminiPool))));
+define('GEMINI_API_KEY', GEMINI_API_KEYS[0] ?? '');
 
 // Modelos de Gemini a utilizar con alta capacidad de visión OMR
 define('GEMINI_PRIMARY_MODEL', 'gemini-3.5-flash-lite');

@@ -37,6 +37,16 @@ Documento central con las rutas, dominios, credenciales, actualizaciones técnic
 
 ## 🚀 3. Registro de Actualizaciones Recientes (Changelog)
 
+### 🎙️ Pestaña Independiente de Captura Manual y Dictado por Voz (`captura_manual.php` y `captura_base.php`) - 23/Oct/2026
+1. **Captura Manual de Alumnos (`captura_manual.php`):**
+   * Accesible desde `index.php` y `panel.php` con apertura en nueva pestaña (`target="_blank"`).
+   * Pide nombre de alumno, carga los 4 módulos PAA y permite ingresar/dictar respuestas para calificar sin foto.
+2. **Captura y Dictado de Hoja Base Oficial (`captura_base.php`):**
+   * Accesible desde `panel.php` y `panel_claves.php` en una pestaña dedicada protegida con clave docente.
+   * Pre-carga automáticamente las claves oficiales actuales desde `claves.json`.
+   * Permite alternar o dictar por voz las respuestas maestras en los 4 módulos (Lectura 1-45, Redacción 1-25, Matemáticas 1-45 y Grids numéricos 46-55).
+   * Guarda directamente en la base oficial (`claves.json`) mediante un solo clic.
+
 ### ⚡ Soporte Completo para 125 Reactivos PAA y Grid Matemático (46 a 55) - 21/Oct/2026
 1. **Solución a Lectura Parcial y Fallas de Recorte:**
    * Se eliminó el recorte rígido por detección de color que fallaba en fotos reales de smartphone y cortaba secciones.

@@ -157,6 +157,17 @@ $total = $countLec + $countRed + $countMat + $countIng;
 
     </div>
 
+    <!-- Banner de Dictado y Editor Visual -->
+    <div style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <b style="color: #38bdf8; font-size: 14px;">🎙️ Editor Visual y Dictado por Voz</b>
+            <p style="margin: 3px 0 0 0; font-size: 13px; color: var(--muted);">Captura y dicta las respuestas oficiales directamente en casillas interactivas sin escribir texto rápido.</p>
+        </div>
+        <a href="captura_base.php" target="_blank" style="text-decoration: none; background: #0284c7; color: #fff; font-weight: 700; font-size: 13px; padding: 10px 16px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
+            <span>🎙️ Abrir Editor Visual / Voz ↗</span>
+        </a>
+    </div>
+
     <!-- Formulario de Edición -->
     <div class="card">
         <h2>📝 Editar Respuestas Correctas</h2>

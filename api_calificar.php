@@ -156,9 +156,15 @@ if ($accion === 'analizar_hoja_alumno') {
         responder_json(['exito' => false, 'error' => 'No se pudieron leer los datos del archivo.']);
     }
 
-    // 1. Extraer nombre escrito si está disponible en la hoja
-    $datosAlumno = gemini_extraer_datos_alumno($imageBytes);
-    $nombreDetectado = $datosAlumno['nombre'] ?? '';
+    // 1. Analizar hoja completa y extraer nombre en PARALELO con los núcleos de Gemini
+    $mimeType = $archivo['type'] ?: 'image/jpeg';
+    $t0 = microtime(true);
+    $analisisCompleto = gemini_analizar_hoja_completa_paralela($imageBytes, $mimeType);
+    $duracion = round(microtime(true) - $t0, 2);
+
+    $nombreDetectado = $analisisCompleto['nombre'] ?? '';
+    $carreraDetectada = $analisisCompleto['carrera'] ?? '';
+    $datosRespuestas = $analisisCompleto['respuestas'] ?? [];
 
     // Si ya proporcionó un nombre o se detectó uno, verificar que no esté bloqueado
     $nombreVerificar = trim($_POST['nombre_previo'] ?? $nombreDetectado);
@@ -177,16 +183,10 @@ if ($accion === 'analizar_hoja_alumno') {
         }
     }
 
-    // 2. Analizar respuestas con el motor seccional de Gemini
-    $mimeType = $archivo['type'] ?: 'image/jpeg';
-    $t0 = microtime(true);
-    $datosRespuestas = gemini_analyze_sheet($imageBytes, $mimeType);
-    $duracion = round(microtime(true) - $t0, 2);
-
-    if (isset($datosRespuestas['error'])) {
+    if (empty($datosRespuestas) || (empty($datosRespuestas['lectura']) && empty($datosRespuestas['redaccion']) && empty($datosRespuestas['matematicas']))) {
         responder_json([
             'exito' => false,
-            'error' => 'No se pudo leer la hoja: ' . $datosRespuestas['error'],
+            'error' => 'No se pudo leer la hoja: ' . ($analisisCompleto['error'] ?? 'No se detectaron respuestas'),
             'consejo' => 'Asegúrate de que la hoja esté bien iluminada y las burbujas estén bien marcadas.'
         ]);
     }
@@ -200,14 +200,14 @@ if ($accion === 'analizar_hoja_alumno') {
                        count($datosRespuestas['redaccion'] ?? []) + 
                        count($datosRespuestas['matematicas'] ?? []);
 
-    bot_log("Hoja analizada con éxito ({$totalDetectadas} respuestas detectadas en {$duracion}s)");
+    bot_log("⚡ Hoja analizada en {$duracion}s ({$totalDetectadas} respuestas detectadas, Nombre: '{$nombreDetectado}')");
 
     responder_json([
         'exito' => true,
         'temp_id' => $tempId,
         'duracion' => $duracion,
         'nombre_detectado' => $nombreDetectado,
-        'carrera_detectada' => $datosAlumno['carrera'] ?? '',
+        'carrera_detectada' => $carreraDetectada,
         'total_detectadas' => $totalDetectadas,
         'respuestas_detectadas' => $datosRespuestas
     ]);
@@ -229,8 +229,9 @@ if ($accion === 'confirmar_examen_alumno') {
     $alumnos = cargar_alumnos();
     $alumno = $alumnos[$norm] ?? null;
 
-    // Verificar candado de intentos
-    if ($alumno && ($alumno['bloqueado'] ?? true) && !($alumno['permiso_reintento'] ?? false)) {
+    // Verificar candado de intentos (los administradores docentes autenticados pueden registrar sin bloqueo)
+    $esAdmin = (!empty($_SESSION['admin_token']) && $_SESSION['admin_token'] === ADMIN_PASSWORD);
+    if (!$esAdmin && $alumno && ($alumno['bloqueado'] ?? true) && !($alumno['permiso_reintento'] ?? false)) {
         responder_json([
             'exito' => false,
             'error' => 'Ya has entregado tu examen con anterioridad. Solicita autorización a tu profesor para volver a subirlo.'

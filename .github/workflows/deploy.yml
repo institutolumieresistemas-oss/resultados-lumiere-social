@@ -31,4 +31,7 @@ jobs:
             if [ -d "../calificador/uploads" ]; then
               ln -sfn ../calificador/uploads uploads
             fi
+            if [ -d "../calificador/mesas" ]; then
+              ln -sfn ../calificador/mesas mesas
+            fi
             echo "✅ Deploy de Resultados completado exitosamente"
